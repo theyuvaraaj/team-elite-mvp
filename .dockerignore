@@ -1,0 +1,9 @@
+node_modules
+.git
+.superpowers
+apps/web
+**/.env
+**/.env.*
+**/dist
+**/*.md
+!apps/api/prisma/**

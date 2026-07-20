@@ -35,6 +35,8 @@ Consolidated design copy: [superpowers/specs/2026-07-19-team-elite-portal-design
 
 Implementation plan: [superpowers/plans/2026-07-19-team-elite-portal-mvp.md](./superpowers/plans/2026-07-19-team-elite-portal-mvp.md)
 
+E2E manual test plan: [e2e-test-plan.md](./e2e-test-plan.md)
+
 ## Status
 
 Architecture **approved** (2026-07-19). Implementation plan written — awaiting execution mode choice.

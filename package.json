@@ -1,0 +1,15 @@
+{
+  "name": "team-elite",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter @team-elite/api --filter @team-elite/web dev",
+    "dev:api": "pnpm --filter @team-elite/api dev",
+    "dev:web": "pnpm --filter @team-elite/web dev",
+    "db:up": "docker compose up -d || docker-compose up -d",
+    "db:migrate": "pnpm --filter @team-elite/api db:migrate",
+    "db:seed": "pnpm --filter @team-elite/api db:seed",
+    "test": "pnpm --filter @team-elite/api test"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "engines": { "node": ">=20" }
+}
