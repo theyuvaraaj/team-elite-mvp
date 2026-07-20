@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth/useAuth";
+import { BrandLogo } from "../ui/BrandLogo";
 import { Button } from "../ui/Button";
 
 export function AppShell({
@@ -31,29 +32,11 @@ export function AppShell({
     }
   }
 
-  const initials =
-    user?.name
-      ?.split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? "")
-      .join("") || "TE";
-
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-20 border-b border-border/70 bg-background/75 backdrop-blur-xl">
         <div className="mx-auto flex h-[4.25rem] max-w-7xl items-center justify-between px-5 sm:px-8">
-          <div className="flex items-center gap-3">
-            <span className="grid size-9 place-items-center rounded-2xl bg-foreground text-[11px] font-bold tracking-tight text-background shadow-sm">
-              TE
-            </span>
-            <div className="leading-tight">
-              <p className="text-sm font-semibold tracking-tight">Team Elite Portal</p>
-              <p className="hidden text-[11px] text-muted-foreground sm:block">
-                Operations workspace
-              </p>
-            </div>
-          </div>
+          <BrandLogo />
 
           <div className="flex items-center gap-2 sm:gap-3">
             <button
@@ -66,19 +49,27 @@ export function AppShell({
               <span className="hidden sm:inline">{dark ? "Light" : "Dark"}</span>
             </button>
 
-            <div className="hidden items-center gap-3 rounded-2xl border border-border bg-surface/90 py-1.5 pl-1.5 pr-3 sm:flex">
-              <span className="grid size-8 place-items-center rounded-xl bg-accent-soft text-[11px] font-bold text-accent">
-                {initials}
-              </span>
+            <Link
+              to="/profile"
+              className="hidden items-center gap-3 rounded-2xl border border-border bg-surface/90 px-3 py-2 transition hover:border-accent/40 sm:flex"
+              title="Edit profile"
+            >
               <div className="min-w-0">
                 <p className="truncate text-xs font-semibold text-foreground">
                   {user?.name}
                 </p>
                 <p className="text-[11px] capitalize text-muted-foreground">
-                  {user?.role.toLowerCase()}
+                  {user?.role.toLowerCase()} · Edit profile
                 </p>
               </div>
-            </div>
+            </Link>
+
+            <Link
+              to="/profile"
+              className="inline-flex h-10 items-center rounded-xl border border-border bg-surface/90 px-3 text-xs font-semibold sm:hidden"
+            >
+              Profile
+            </Link>
 
             <Button
               type="button"
@@ -97,7 +88,7 @@ export function AppShell({
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">
             {user?.role}
           </p>
-          <h1 className="mt-3 font-display text-4xl tracking-tight text-foreground sm:text-5xl">
+          <h1 className="mt-3 font-display text-[2rem] tracking-tight text-foreground sm:text-[2.35rem]">
             {title}
           </h1>
           <p className="mt-3 max-w-2xl text-[15px] leading-7 text-muted-foreground">

@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { ApplicationForm } from "./ApplicationForm";
 import type { ApplicationInput, StaffApplication } from "./employeeApi";
 
@@ -14,48 +15,58 @@ export function QuickAddApplication({
   onClose,
   onSubmit,
 }: QuickAddApplicationProps) {
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-foreground/40 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] overflow-y-auto bg-black/40"
       role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="application-dialog-title"
-        className="panel my-8 w-full max-w-2xl p-6 sm:p-7"
+      <div
+        className="flex min-h-full items-center justify-center p-4 sm:p-8"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) onClose();
+        }}
       >
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-accent">
-              Application
-            </p>
-            <h2
-              id="application-dialog-title"
-              className="mt-2 font-display text-2xl tracking-tight"
+        <section
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="application-dialog-title"
+          className="w-full max-w-xl rounded-2xl border border-border bg-surface shadow-none"
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          <header className="flex items-start justify-between gap-4 border-b border-border px-5 py-4 sm:px-6">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-accent">
+                Application
+              </p>
+              <h2
+                id="application-dialog-title"
+                className="mt-1 font-display text-xl tracking-tight"
+              >
+                {application ? "Edit application" : "Add application"}
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close dialog"
+              className="grid size-9 shrink-0 place-items-center rounded-lg text-xl text-muted-foreground transition hover:bg-muted hover:text-foreground"
             >
-              {application ? "Edit application" : "Add application"}
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close dialog"
-            className="grid size-9 place-items-center rounded-lg text-xl text-muted-foreground transition hover:bg-muted hover:text-foreground"
-          >
-            ×
-          </button>
-        </div>
-        <ApplicationForm
-          application={application}
-          submitting={submitting}
-          onCancel={onClose}
-          onSubmit={onSubmit}
-        />
-      </section>
-    </div>
+              ×
+            </button>
+          </header>
+
+          <ApplicationForm
+            application={application}
+            submitting={submitting}
+            onCancel={onClose}
+            onSubmit={onSubmit}
+          />
+        </section>
+      </div>
+    </div>,
+    document.body,
   );
 }

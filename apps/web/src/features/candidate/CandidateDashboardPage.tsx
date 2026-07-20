@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { AppShell } from "../../components/layout/AppShell";
+import { Select } from "../../components/ui/Select";
 import {
   getCandidateApplicationsPage,
   type CandidateApplication,
@@ -50,7 +51,6 @@ function StatCards({
     { label: "Total", value: stats?.total },
     { label: "This week", value: stats?.thisWeek },
     { label: "Interviews", value: "—", note: "Coming soon" },
-    { label: "Pending", value: stats?.pending },
   ];
 
   return (
@@ -61,7 +61,7 @@ function StatCards({
         </h2>
         <p className="text-xs text-muted-foreground">Your application activity</p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-3">
         {cards.map((card) => (
           <article key={card.label} className="stat-card p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
@@ -241,22 +241,28 @@ export function CandidateDashboardPage() {
                   className="h-10 w-full rounded-lg border border-border bg-background px-3.5 text-sm outline-none transition placeholder:text-muted-foreground/70 focus:border-accent focus:ring-3 focus:ring-accent/15"
                 />
               </label>
-              <label>
-                <span className="sr-only">Sort applications</span>
-                <select
-                  value={sort}
-                  onChange={(event) => {
-                    setSort(event.target.value as CandidateApplicationSort);
-                    setPage(1);
-                  }}
-                  className="h-10 rounded-lg border border-border bg-background px-3.5 text-sm font-medium outline-none focus:border-accent focus:ring-3 focus:ring-accent/15"
-                >
-                  <option value="date-desc">Newest first</option>
-                  <option value="date-asc">Oldest first</option>
-                  <option value="probability-desc">Probability: high to low</option>
-                  <option value="probability-asc">Probability: low to high</option>
-                </select>
-              </label>
+              <Select
+                size="sm"
+                value={sort}
+                onChange={(next) => {
+                  setSort(next as CandidateApplicationSort);
+                  setPage(1);
+                }}
+                label="Sort applications"
+                labelHidden
+                options={[
+                  { value: "date-desc", label: "Newest first" },
+                  { value: "date-asc", label: "Oldest first" },
+                  {
+                    value: "probability-desc",
+                    label: "Probability: high to low",
+                  },
+                  {
+                    value: "probability-asc",
+                    label: "Probability: low to high",
+                  },
+                ]}
+              />
             </div>
 
             {applicationsQuery.isPending ? (

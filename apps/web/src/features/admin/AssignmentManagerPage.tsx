@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { AppShell } from "../../components/layout/AppShell";
+import { Select } from "../../components/ui/Select";
 import { ApiError } from "../../lib/api";
 import { AdminNav } from "./AdminNav";
 import {
@@ -14,29 +15,75 @@ export function AssignmentManagerPage() {
   const employeesQuery = useAdminEmployees();
   const assignmentsQuery = useAdminAssignments();
   const mutations = useAssignmentMutations();
-  const [candidateId, setCandidateId] = useState("");
   const [employeeId, setEmployeeId] = useState("");
+  const [candidateId, setCandidateId] = useState("");
   const [error, setError] = useState("");
 
   const candidates = candidatesQuery.data?.candidates ?? [];
   const employees = employeesQuery.data?.employees ?? [];
+  const allAssignments = assignmentsQuery.data?.assignments ?? [];
+
+  const activeEmployees = employees.filter((employee) => employee.user.isActive);
+  const selectedEmployeeId = employeeId || activeEmployees[0]?.id || "";
   const selectedCandidateId = candidateId || candidates[0]?.id || "";
-  const assignments = useMemo(
-    () => (assignmentsQuery.data?.assignments ?? []).filter((item) => item.candidateId === selectedCandidateId),
-    [assignmentsQuery.data?.assignments, selectedCandidateId],
-  );
-  const availableEmployees = employees.filter(
-    (employee) => employee.user.isActive && !assignments.some((item) => item.employeeId === employee.id),
+
+  const pairExists = useMemo(
+    () =>
+      allAssignments.some(
+        (item) =>
+          item.employeeId === selectedEmployeeId &&
+          item.candidateId === selectedCandidateId,
+      ),
+    [allAssignments, selectedCandidateId, selectedEmployeeId],
   );
 
+  const visibleAssignments = useMemo(() => {
+    if (selectedEmployeeId && selectedCandidateId) {
+      return allAssignments.filter(
+        (item) =>
+          item.employeeId === selectedEmployeeId ||
+          item.candidateId === selectedCandidateId,
+      );
+    }
+    if (selectedEmployeeId) {
+      return allAssignments.filter(
+        (item) => item.employeeId === selectedEmployeeId,
+      );
+    }
+    if (selectedCandidateId) {
+      return allAssignments.filter(
+        (item) => item.candidateId === selectedCandidateId,
+      );
+    }
+    return allAssignments;
+  }, [allAssignments, selectedCandidateId, selectedEmployeeId]);
+
+  const employeeOptions = activeEmployees.map((employee) => ({
+    value: employee.id,
+    label: employee.user.name,
+    description: `${employee.employeeCode} · ${employee.user.email}`,
+  }));
+
+  const candidateOptions = candidates.map((candidate) => ({
+    value: candidate.id,
+    label: candidate.user.name,
+    description: candidate.user.email,
+  }));
+
   async function assign() {
-    if (!selectedCandidateId || !employeeId) return;
+    if (!selectedEmployeeId || !selectedCandidateId) return;
     setError("");
     try {
-      await mutations.create.mutateAsync({ candidateId: selectedCandidateId, employeeId });
-      setEmployeeId("");
+      await mutations.create.mutateAsync({
+        candidateId: selectedCandidateId,
+        employeeId: selectedEmployeeId,
+      });
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : "The employee could not be assigned.");
+      setError(
+        caught instanceof ApiError
+          ? caught.message
+          : "The employee could not be assigned.",
+      );
     }
   }
 
@@ -45,63 +92,150 @@ export function AssignmentManagerPage() {
     try {
       await mutations.remove.mutateAsync(id);
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : "The assignment could not be removed.");
+      setError(
+        caught instanceof ApiError
+          ? caught.message
+          : "The assignment could not be removed.",
+      );
     }
   }
 
-  const loading = candidatesQuery.isPending || employeesQuery.isPending || assignmentsQuery.isPending;
-  const failed = candidatesQuery.isError || employeesQuery.isError || assignmentsQuery.isError;
+  const loading =
+    candidatesQuery.isPending ||
+    employeesQuery.isPending ||
+    assignmentsQuery.isPending;
+  const failed =
+    candidatesQuery.isError ||
+    employeesQuery.isError ||
+    assignmentsQuery.isError;
 
   return (
-    <AppShell title="Assignment manager" description="Connect candidates with the employees responsible for their applications.">
+    <AppShell
+      title="Assignment manager"
+      description="Connect any employee with any candidate. Many-to-many assignments are supported."
+    >
       <AdminNav />
       {loading ? (
         <div className="h-64 animate-pulse rounded-xl bg-muted" />
       ) : failed ? (
-        <p role="alert" className="rounded-xl border border-danger/25 bg-danger/5 p-6 text-danger">Assignment data could not be loaded.</p>
-      ) : candidates.length === 0 ? (
+        <p
+          role="alert"
+          className="rounded-xl border border-danger/25 bg-danger/5 p-6 text-danger"
+        >
+          Assignment data could not be loaded.
+        </p>
+      ) : activeEmployees.length === 0 || candidates.length === 0 ? (
         <div className="panel p-12 text-center">
-          <p className="font-semibold">No candidates available</p>
-          <p className="mt-2 text-sm text-muted-foreground">Invite a candidate before creating assignments.</p>
+          <p className="font-semibold">Not enough users to assign</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Invite at least one active employee and one candidate first.
+          </p>
         </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-          <section className="panel p-5">
-            <label className="text-sm font-semibold">
-              Candidate
-              <select value={selectedCandidateId} onChange={(event) => { setCandidateId(event.target.value); setEmployeeId(""); }} className="mt-2 h-11 w-full rounded-lg border border-border bg-background px-3.5 text-sm outline-none focus:border-accent focus:ring-3 focus:ring-accent/15">
-                {candidates.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.user.name} · {candidate.user.email}</option>)}
-              </select>
-            </label>
-            <div className="mt-6 border-t border-border pt-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">Add employee</p>
-              <select value={employeeId} onChange={(event) => setEmployeeId(event.target.value)} className="mt-3 h-11 w-full rounded-lg border border-border bg-background px-3.5 text-sm outline-none focus:border-accent focus:ring-3 focus:ring-accent/15">
-                <option value="">Select an employee…</option>
-                {availableEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.user.name} ({employee.employeeCode})</option>)}
-              </select>
-              <button type="button" onClick={() => void assign()} disabled={!employeeId || mutations.create.isPending} className="mt-3 h-10 w-full rounded-lg bg-accent px-4 text-sm font-semibold text-accent-foreground hover:bg-accent-strong disabled:opacity-50">
-                {mutations.create.isPending ? "Assigning…" : "Assign employee"}
-              </button>
-              {availableEmployees.length === 0 ? <p className="mt-3 text-xs text-muted-foreground">All active employees are already assigned.</p> : null}
-            </div>
+          <section className="panel space-y-5 p-5">
+            <Select
+              label="Employee"
+              value={selectedEmployeeId}
+              onChange={setEmployeeId}
+              options={employeeOptions}
+              placeholder="Select an employee…"
+            />
+            <Select
+              label="Candidate"
+              value={selectedCandidateId}
+              onChange={setCandidateId}
+              options={candidateOptions}
+              placeholder="Select a candidate…"
+            />
+            <button
+              type="button"
+              onClick={() => void assign()}
+              disabled={
+                !selectedEmployeeId ||
+                !selectedCandidateId ||
+                pairExists ||
+                mutations.create.isPending
+              }
+              className="h-11 w-full rounded-xl bg-accent px-4 text-sm font-semibold text-accent-foreground hover:bg-accent-strong disabled:opacity-50"
+            >
+              {mutations.create.isPending ? "Assigning…" : "Create assignment"}
+            </button>
+            {pairExists ? (
+              <p className="text-xs text-muted-foreground">
+                This employee is already assigned to this candidate.
+              </p>
+            ) : null}
           </section>
 
-          <section aria-labelledby="assigned-employees-heading">
+          <section aria-labelledby="assignments-heading">
             <div className="mb-4">
-              <h2 id="assigned-employees-heading" className="text-lg font-semibold tracking-tight">Assigned employees</h2>
-              <p className="mt-1 text-sm text-muted-foreground">{assignments.length} active assignment{assignments.length === 1 ? "" : "s"} for this candidate.</p>
+              <h2
+                id="assignments-heading"
+                className="text-lg font-semibold tracking-tight"
+              >
+                Assignments
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Showing {visibleAssignments.length} link
+                {visibleAssignments.length === 1 ? "" : "s"} related to the
+                selected employee or candidate.
+              </p>
             </div>
-            {error ? <p role="alert" className="mb-4 rounded-lg bg-danger/10 px-4 py-3 text-sm text-danger">{error}</p> : null}
+            {error ? (
+              <p
+                role="alert"
+                className="mb-4 rounded-lg bg-danger/10 px-4 py-3 text-sm text-danger"
+              >
+                {error}
+              </p>
+            ) : null}
             <div className="data-table-wrap">
-              {assignments.length === 0 ? (
-                <div className="p-12 text-center"><p className="font-semibold">No employees assigned</p><p className="mt-2 text-sm text-muted-foreground">Select an employee to create the first assignment.</p></div>
+              {visibleAssignments.length === 0 ? (
+                <div className="p-12 text-center">
+                  <p className="font-semibold">No assignments yet</p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Choose an employee and candidate, then create an assignment.
+                  </p>
+                </div>
               ) : (
                 <ul className="divide-y divide-border">
-                  {assignments.map((assignment) => (
-                    <li key={assignment.id} className="flex items-center gap-4 px-5 py-4">
-                      <span className="grid size-10 place-items-center rounded-full bg-accent/10 text-xs font-bold text-accent">{assignment.employee.user.name.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase()}</span>
-                      <div className="min-w-0 flex-1"><p className="truncate font-semibold">{assignment.employee.user.name}</p><p className="mt-1 text-sm text-muted-foreground">{assignment.employee.employeeCode} · Assigned {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(assignment.assignedAt))}</p></div>
-                      <button type="button" onClick={() => void remove(assignment.id)} disabled={mutations.remove.isPending} className="text-sm font-semibold text-danger hover:underline disabled:opacity-50">Remove</button>
+                  {visibleAssignments.map((assignment) => (
+                    <li
+                      key={assignment.id}
+                      className="flex items-center gap-4 px-5 py-4"
+                    >
+                      <span className="grid size-10 place-items-center rounded-full bg-accent/10 text-xs font-bold text-accent">
+                        {assignment.employee.user.name
+                          .split(" ")
+                          .map((part) => part[0])
+                          .slice(0, 2)
+                          .join("")
+                          .toUpperCase()}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold">
+                          {assignment.employee.user.name}
+                          <span className="font-normal text-muted-foreground">
+                            {" "}
+                            → {assignment.candidate.user.name}
+                          </span>
+                        </p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {assignment.employee.employeeCode} · Assigned{" "}
+                          {new Intl.DateTimeFormat(undefined, {
+                            dateStyle: "medium",
+                          }).format(new Date(assignment.assignedAt))}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void remove(assignment.id)}
+                        disabled={mutations.remove.isPending}
+                        className="text-sm font-semibold text-danger hover:underline disabled:opacity-50"
+                      >
+                        Remove
+                      </button>
                     </li>
                   ))}
                 </ul>

@@ -14,48 +14,33 @@ function startOfWeek(): Date {
   return date;
 }
 
-// MVP heuristic: null/empty updates or updates containing "pending" are pending.
-// Keep this centralized so a future status field can replace it without API changes.
-const pendingWhere: Prisma.ApplicationWhereInput = {
-  OR: [
-    { updates: null },
-    { updates: "" },
-    { updates: { contains: "pending", mode: "insensitive" } },
-  ],
-};
-
 export async function getCandidateStats(candidateId: string) {
   const scope: Prisma.ApplicationWhereInput = { candidateId };
-  const [total, thisWeek, pending] = await prisma.$transaction([
+  const [total, thisWeek] = await prisma.$transaction([
     prisma.application.count({ where: scope }),
     prisma.application.count({
       where: { ...scope, appliedDate: { gte: startOfWeek() } },
     }),
-    prisma.application.count({ where: { AND: [scope, pendingWhere] } }),
   ]);
 
-  return { total, thisWeek, interviewsPlaceholder: 0, pending };
+  return { total, thisWeek, interviewsPlaceholder: 0 };
 }
 
 export async function getEmployeeStats(employeeId: string) {
   const applicationScope: Prisma.ApplicationWhereInput = {
     candidate: { assignments: { some: { employeeId } } },
   };
-  const [assignedCandidates, applicationsToday, pending] =
-    await prisma.$transaction([
-      prisma.assignment.count({ where: { employeeId } }),
-      prisma.application.count({
-        where: {
-          ...applicationScope,
-          appliedDate: { gte: startOfToday() },
-        },
-      }),
-      prisma.application.count({
-        where: { AND: [applicationScope, pendingWhere] },
-      }),
-    ]);
+  const [assignedCandidates, applicationsToday] = await prisma.$transaction([
+    prisma.assignment.count({ where: { employeeId } }),
+    prisma.application.count({
+      where: {
+        ...applicationScope,
+        appliedDate: { gte: startOfToday() },
+      },
+    }),
+  ]);
 
-  return { assignedCandidates, applicationsToday, pending };
+  return { assignedCandidates, applicationsToday };
 }
 
 export async function getAdminStats() {

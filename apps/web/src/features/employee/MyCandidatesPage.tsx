@@ -17,11 +17,10 @@ function StatsCards({
   const cards = [
     { label: "Assigned", value: stats?.assignedCandidates, note: "Active candidates" },
     { label: "Today", value: stats?.applicationsToday, note: "Applications added" },
-    { label: "Pending", value: stats?.pending, note: "Awaiting an update" },
   ];
 
   return (
-    <section className="grid gap-4 sm:grid-cols-3" aria-label="Employee statistics">
+    <section className="grid gap-4 sm:grid-cols-2" aria-label="Employee statistics">
       {cards.map((card) => (
         <article key={card.label} className="stat-card p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">

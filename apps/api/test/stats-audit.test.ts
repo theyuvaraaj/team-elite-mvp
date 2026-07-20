@@ -141,7 +141,6 @@ describe("role-scoped stats and audit logs", () => {
       total: 3,
       thisWeek: 2,
       interviewsPlaceholder: 0,
-      pending: 2,
     });
   });
 
@@ -156,7 +155,6 @@ describe("role-scoped stats and audit logs", () => {
     expect(response.json()).toEqual({
       assignedCandidates: 1,
       applicationsToday: 2,
-      pending: 2,
     });
   });
 

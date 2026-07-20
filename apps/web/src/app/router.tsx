@@ -5,6 +5,7 @@ import { AllApplicationsPage } from "../features/admin/AllApplicationsPage";
 import { AssignmentManagerPage } from "../features/admin/AssignmentManagerPage";
 import { AuditLogPage } from "../features/admin/AuditLogPage";
 import { LoginPage } from "../features/auth/LoginPage";
+import { ProfilePage } from "../features/auth/ProfilePage";
 import { RequireAuth } from "../features/auth/RequireAuth";
 import { RequireRole } from "../features/auth/RequireRole";
 import { SetPasswordPage } from "../features/auth/SetPasswordPage";
@@ -69,6 +70,14 @@ export function AppRouter() {
           element={
             <RequireAuth>
               <HomeRedirect />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <RequireAuth>
+              <ProfilePage />
             </RequireAuth>
           }
         />

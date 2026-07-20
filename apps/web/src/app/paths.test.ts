@@ -24,4 +24,10 @@ describe("canAccessPath", () => {
     expect(canAccessPath("EMPLOYEE", "/")).toBe(true);
     expect(canAccessPath("CANDIDATE", "/")).toBe(true);
   });
+
+  it("allows any authenticated role to access /profile", () => {
+    expect(canAccessPath("ADMIN", "/profile")).toBe(true);
+    expect(canAccessPath("EMPLOYEE", "/profile")).toBe(true);
+    expect(canAccessPath("CANDIDATE", "/profile")).toBe(true);
+  });
 });

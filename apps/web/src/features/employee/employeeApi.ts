@@ -24,7 +24,6 @@ export interface EmployeeCandidate {
 export interface EmployeeStats {
   assignedCandidates: number;
   applicationsToday: number;
-  pending: number;
 }
 
 export interface StaffApplication {

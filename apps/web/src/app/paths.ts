@@ -11,7 +11,7 @@ export function roleHomePath(role: UserRole): string {
 }
 
 export function canAccessPath(role: UserRole, path: string): boolean {
-  if (path === "/") {
+  if (path === "/" || path.startsWith("/profile")) {
     return true;
   }
   if (path.startsWith("/admin")) {

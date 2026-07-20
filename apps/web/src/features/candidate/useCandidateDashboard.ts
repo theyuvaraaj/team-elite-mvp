@@ -6,7 +6,6 @@ export interface CandidateStats {
   total: number;
   thisWeek: number;
   interviewsPlaceholder: number;
-  pending: number;
 }
 
 interface ApplicationsResponse {

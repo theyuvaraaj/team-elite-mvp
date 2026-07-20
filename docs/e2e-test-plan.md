@@ -237,3 +237,12 @@ pnpm --filter @team-elite/api test
 - Interview Calls card is a placeholder
 - Pending stats use a simple `updates` heuristic
 - With empty `RESEND_API_KEY`, email is console-only (by design)
+
+
+# Sample Credentials
+
+| Role      | Email                   | Password          |
+|-----------|-------------------------|-------------------|
+| Admin     | admin@teamelite.local   | ChangeMeAdmin123! |
+| Employee  | employee@teamelite.local| Employee123!      |
+| Candidate | candidate@teamelite.local| Candidate123!     |

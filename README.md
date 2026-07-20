@@ -1,17 +1,6 @@
 # Team Elite Portal
 
-pnpm monorepo for the Team Elite Portal MVP.
-
-## Packages
-
-- `apps/api` — Fastify API (port 3001)
-- `apps/web` — Vite React SPA (port 5173)
-
-## Prerequisites
-
-- Node.js 20+
-- pnpm 9.15+
-- Docker (local Postgres)
+pnpm monorepo: Fastify API (`apps/api`, :3001) + Vite React SPA (`apps/web`, :5173).
 
 ## Setup
 
@@ -19,88 +8,47 @@ pnpm monorepo for the Team Elite Portal MVP.
 pnpm install
 cp .env.example apps/api/.env
 pnpm db:up
+pnpm db:seed
+pnpm dev
 ```
 
-## Development
+Health: `curl http://localhost:3001/api/health` → `{"ok":true}`
 
-```bash
-pnpm dev          # API + web in parallel
-pnpm dev:api      # API only
-pnpm dev:web      # web only
-```
+## Creating admins
 
-## Health check
+There is **no “Create admin” UI**. Admins are created only by seed:
 
-```bash
-curl http://localhost:3001/api/health
-# {"ok":true}
-```
+1. Set `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` in `apps/api/.env`
+2. Run `pnpm db:seed`
+3. Sign in with that email/password → `/admin`
 
-## Deployment
+The Users page can invite **employees** and **candidates** only. Extra admins require another seed (different email) or a direct DB insert with role `ADMIN`.
 
-### Architecture
+## Demo logins (after seed)
 
-- **Vercel** — static SPA from `apps/web`
-- **Railway** — Fastify API + Postgres from `apps/api` (Docker)
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | `admin@teamelite.local` | `ChangeMeAdmin123!` |
+| Employee | `employee@teamelite.local` | `Employee123!` |
+| Candidate | `candidate@teamelite.local` | `Candidate123!` |
 
-The web app calls `/api/*` on the same origin. The Vercel `/api` rewrite to Railway is **required** for cookie authentication: it keeps browser requests same-site so the session cookie is stored and sent correctly. A direct, cross-origin browser connection to Railway without this rewrite breaks login.
+## Scripts
 
-### Railway (API + Postgres)
+| Command | What |
+|---------|------|
+| `pnpm dev` | API + web |
+| `pnpm db:up` | Local Postgres (Docker) |
+| `pnpm db:seed` | Admin + demo users |
 
-1. Create a Postgres plugin and attach it to the API service.
-2. Set the service **Root Directory** to the repository root.
-3. Set **Dockerfile Path** to `apps/api/Dockerfile` (see `apps/api/railway.toml`).
-4. Railway injects `DATABASE_URL` from Postgres; set the remaining env vars below.
-5. On each deploy, the container runs `prisma migrate deploy` then starts the API.
+## Deploy
 
-Local Docker build check:
+- **Railway** — API + Postgres (`apps/api/Dockerfile`); runs migrations on start
+- **Vercel** — SPA (`apps/web`); rewrite `/api/*` → Railway (required for cookie auth)
 
-```bash
-docker build -f apps/api/Dockerfile -t team-elite-api .
-```
+Set Railway `WEB_ORIGIN` to the Vercel URL. Replace `YOUR_RAILWAY_API_URL` in `apps/web/vercel.json` before go-live.
 
-### Vercel (web)
-
-1. Import the repo and set **Root Directory** to `apps/web`.
-2. Build command: `pnpm build` (default). Output: `dist`.
-3. Before go-live, replace `YOUR_RAILWAY_API_URL` in `apps/web/vercel.json` with the public Railway API host (no trailing slash). Do not deploy the placeholder.
-4. Verify that Vercel rewrites `/api/*` to Railway; this is required for same-site cookie authentication.
-5. After the first Vercel deploy, set the Railway API `WEB_ORIGIN` to the exact Vercel URL (e.g. `https://your-app.vercel.app`).
-
-> **Cookie-auth warning:** Do not configure the SPA to call the Railway host directly. Without the Vercel `/api` rewrite, requests are cross-origin and login will fail because the browser will not handle the session cookie as the app expects.
-
-### Environment variables
-
-**Railway (API service)**
-
-| Variable | Required | Notes |
-|----------|----------|-------|
-| `DATABASE_URL` | yes | From Railway Postgres |
-| `SESSION_SECRET` | yes | Long random string |
-| `WEB_ORIGIN` | yes | Exact Vercel app URL; required for CORS and cookie auth |
-| `API_ORIGIN` | yes | Public Railway API URL |
-| `RESEND_API_KEY` | no | Email invites; empty disables send |
-| `EMAIL_FROM` | yes | e.g. `Team Elite <onboarding@resend.dev>` |
-| `INVITE_TOKEN_TTL_HOURS` | yes | e.g. `72` |
-| `SESSION_TTL_DAYS` | yes | e.g. `14` |
-| `SEED_ADMIN_EMAIL` | yes | Used by `pnpm db:seed` only |
-| `SEED_ADMIN_PASSWORD` | yes | Used by `pnpm db:seed` only |
-| `PORT` | no | Railway sets this automatically |
-| `NODE_ENV` | yes | `production` |
-
-**Vercel (web)**
-
-No env vars required for the SPA; API traffic is proxied via `vercel.json`.
-
-### Post-deploy smoke test
-
-```bash
-curl https://YOUR_RAILWAY_API_URL/api/health
-# {"ok":true}
-```
+**API env (Railway):** `DATABASE_URL`, `SESSION_SECRET`, `WEB_ORIGIN`, `API_ORIGIN`, `EMAIL_FROM`, `INVITE_TOKEN_TTL_HOURS`, `SESSION_TTL_DAYS`, `NODE_ENV=production`. Optional: `RESEND_API_KEY`. Seed vars only needed if you run `pnpm db:seed` there.
 
 ## Docs
 
-See [`docs/README.md`](docs/README.md) for architecture and requirements.
-
-Manual E2E checklist: [`docs/e2e-test-plan.md`](docs/e2e-test-plan.md)
+Architecture: [`docs/README.md`](docs/README.md) · E2E checklist: [`docs/e2e-test-plan.md`](docs/e2e-test-plan.md)

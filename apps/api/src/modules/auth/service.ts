@@ -100,3 +100,139 @@ export async function setPassword(
     });
   });
 }
+
+export interface ProfileDetails {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  candidateId?: string;
+  employeeId?: string;
+  phone?: string | null;
+  gender?: string | null;
+  address?: string | null;
+  primaryRole?: string | null;
+  experience?: string | null;
+  contactEmail?: string | null;
+  employeeCode?: string | null;
+}
+
+export async function getProfile(userId: string): Promise<ProfileDetails> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      candidate: true,
+      employee: true,
+    },
+  });
+
+  if (!user || !user.isActive) {
+    throw new AppError(404, "USER_NOT_FOUND", "User not found");
+  }
+
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    ...(user.candidate
+      ? {
+          candidateId: user.candidate.id,
+          phone: user.candidate.phone,
+          gender: user.candidate.gender,
+          address: user.candidate.address,
+          primaryRole: user.candidate.primaryRole,
+          experience: user.candidate.experience,
+          contactEmail: user.candidate.email,
+        }
+      : {}),
+    ...(user.employee
+      ? {
+          employeeId: user.employee.id,
+          employeeCode: user.employee.employeeCode,
+        }
+      : {}),
+  };
+}
+
+export async function updateProfile(
+  userId: string,
+  input: {
+    name?: string;
+    phone?: string | null;
+    gender?: string | null;
+    address?: string | null;
+    primaryRole?: string | null;
+    experience?: string | null;
+    contactEmail?: string | null;
+  },
+): Promise<ProfileDetails> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { candidate: true, employee: true },
+  });
+
+  if (!user || !user.isActive) {
+    throw new AppError(404, "USER_NOT_FOUND", "User not found");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    if (input.name !== undefined) {
+      await tx.user.update({
+        where: { id: userId },
+        data: { name: input.name },
+      });
+    }
+
+    if (user.employee && input.name !== undefined) {
+      await tx.employee.update({
+        where: { id: user.employee.id },
+        data: { name: input.name },
+      });
+    }
+
+    if (user.candidate) {
+      const candidateData = {
+        ...(input.phone !== undefined ? { phone: emptyToNull(input.phone) } : {}),
+        ...(input.gender !== undefined
+          ? { gender: emptyToNull(input.gender) }
+          : {}),
+        ...(input.address !== undefined
+          ? { address: emptyToNull(input.address) }
+          : {}),
+        ...(input.primaryRole !== undefined
+          ? { primaryRole: emptyToNull(input.primaryRole) }
+          : {}),
+        ...(input.experience !== undefined
+          ? { experience: emptyToNull(input.experience) }
+          : {}),
+        ...(input.contactEmail !== undefined
+          ? { email: emptyToNull(input.contactEmail) }
+          : {}),
+      };
+      if (Object.keys(candidateData).length > 0) {
+        await tx.candidate.update({
+          where: { id: user.candidate.id },
+          data: candidateData,
+        });
+      }
+    }
+
+    await tx.auditLog.create({
+      data: {
+        userId,
+        action: "PROFILE_UPDATED",
+        entity: "User",
+        entityId: userId,
+      },
+    });
+  });
+
+  return getProfile(userId);
+}
+
+function emptyToNull(value: string | null | undefined): string | null {
+  if (value === undefined || value === null) return null;
+  const trimmed = value.trim();
+  return trimmed === "" ? null : trimmed;
+}

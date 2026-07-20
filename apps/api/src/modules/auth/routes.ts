@@ -12,8 +12,14 @@ import {
   loginSchema,
   parseBody,
   setPasswordSchema,
+  updateProfileSchema,
 } from "./schemas.js";
-import { authenticateUser, setPassword } from "./service.js";
+import {
+  authenticateUser,
+  getProfile,
+  setPassword,
+  updateProfile,
+} from "./service.js";
 
 const AUTH_RATE_LIMIT = {
   max: 5,
@@ -79,6 +85,21 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
 
   app.get("/me", { preHandler: requireAuth }, async (request) => {
     return publicUser(request.user!);
+  });
+
+  app.get("/profile", { preHandler: requireAuth }, async (request) => {
+    return getProfile(request.user!.id);
+  });
+
+  app.patch("/profile", { preHandler: requireAuth }, async (request) => {
+    const body = parseBody(updateProfileSchema, request.body);
+    return updateProfile(request.user!.id, {
+      ...body,
+      contactEmail:
+        body.contactEmail === "" || body.contactEmail === null
+          ? null
+          : body.contactEmail,
+    });
   });
 
   app.post(

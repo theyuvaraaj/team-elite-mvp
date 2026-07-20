@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Select } from "../../components/ui/Select";
 import { ApiError } from "../../lib/api";
 import type { ApplicationInput, StaffApplication } from "./employeeApi";
 
@@ -10,12 +11,26 @@ interface ApplicationFormProps {
 }
 
 function dateInputValue(value?: string): string {
-  return value ? value.slice(0, 10) : new Date().toISOString().slice(0, 10);
+  if (!value) {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  return value.slice(0, 10);
 }
 
 function optional(value: string): string | null {
   const trimmed = value.trim();
   return trimmed || null;
+}
+
+function normalizeUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return trimmed;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
 }
 
 export function ApplicationForm({
@@ -47,8 +62,8 @@ export function ApplicationForm({
     try {
       await onSubmit({
         companyName: companyName.trim(),
-        jobLink: jobLink.trim(),
-        resumeLink: optional(resumeLink),
+        jobLink: normalizeUrl(jobLink),
+        resumeLink: optional(resumeLink) ? normalizeUrl(resumeLink) : null,
         probability: optional(probability),
         updates: optional(updates),
         commentsInternal: optional(commentsInternal),
@@ -64,114 +79,124 @@ export function ApplicationForm({
   }
 
   const fieldClass =
-    "mt-2 h-11 w-full rounded-lg border border-border bg-background px-3.5 text-sm outline-none transition focus:border-accent focus:ring-3 focus:ring-accent/15";
+    "mt-2 h-11 w-full rounded-xl border border-border bg-background px-3.5 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/15";
   const labelClass = "text-sm font-medium text-foreground";
 
   return (
-    <form onSubmit={(event) => void handleSubmit(event)} className="space-y-5">
-      <div className="grid gap-5 sm:grid-cols-2">
-        <label className={labelClass}>
-          Company <span className="text-danger">*</span>
+    <form
+      id="application-form"
+      onSubmit={(event) => void handleSubmit(event)}
+      className="px-5 py-4 sm:px-6"
+    >
+      <div className="space-y-4 sm:space-y-5">
+        <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
+          <label className={labelClass}>
+            Company <span className="text-danger">*</span>
+            <input
+              required
+              autoFocus
+              value={companyName}
+              onChange={(event) => setCompanyName(event.target.value)}
+              className={fieldClass}
+            />
+          </label>
+          <label className={labelClass}>
+            Applied date <span className="text-danger">*</span>
+            <input
+              required
+              type="date"
+              value={appliedDate}
+              onChange={(event) => setAppliedDate(event.target.value)}
+              className={fieldClass}
+            />
+          </label>
+        </div>
+
+        <label className={`block ${labelClass}`}>
+          Job link <span className="text-danger">*</span>
           <input
             required
-            autoFocus
-            value={companyName}
-            onChange={(event) => setCompanyName(event.target.value)}
+            type="text"
+            inputMode="url"
+            value={jobLink}
+            onChange={(event) => setJobLink(event.target.value)}
+            placeholder="https://jobs.example.com/role"
             className={fieldClass}
           />
         </label>
-        <label className={labelClass}>
-          Applied date <span className="text-danger">*</span>
+
+        <label className={`block ${labelClass}`}>
+          Resume URL
           <input
-            required
-            type="date"
-            value={appliedDate}
-            onChange={(event) => setAppliedDate(event.target.value)}
+            type="text"
+            inputMode="url"
+            value={resumeLink}
+            onChange={(event) => setResumeLink(event.target.value)}
+            placeholder="https://…"
             className={fieldClass}
           />
         </label>
-      </div>
 
-      <label className={`block ${labelClass}`}>
-        Job link <span className="text-danger">*</span>
-        <input
-          required
-          type="url"
-          value={jobLink}
-          onChange={(event) => setJobLink(event.target.value)}
-          placeholder="https://…"
-          className={fieldClass}
-        />
-      </label>
-
-      <label className={`block ${labelClass}`}>
-        Resume URL
-        <input
-          type="url"
-          value={resumeLink}
-          onChange={(event) => setResumeLink(event.target.value)}
-          placeholder="https://…"
-          className={fieldClass}
-        />
-      </label>
-
-      <div className="grid gap-5 sm:grid-cols-2">
-        <label className={labelClass}>
-          Probability
-          <select
+        <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
+          <Select
+            label="Probability"
             value={probability}
-            onChange={(event) => setProbability(event.target.value)}
-            className={fieldClass}
-          >
-            <option value="">Not set</option>
-            <option value="High">High</option>
-            <option value="Medium">Medium</option>
-            <option value="Low">Low</option>
-          </select>
-        </label>
-        <label className={labelClass}>
-          Update
-          <input
-            value={updates}
-            onChange={(event) => setUpdates(event.target.value)}
-            placeholder="Applied"
-            className={fieldClass}
+            onChange={setProbability}
+            placeholder="Not set"
+            options={[
+              { value: "", label: "Not set" },
+              { value: "High", label: "High" },
+              { value: "Medium", label: "Medium" },
+              { value: "Low", label: "Low" },
+            ]}
+          />
+          <label className={labelClass}>
+            Update
+            <input
+              value={updates}
+              onChange={(event) => setUpdates(event.target.value)}
+              placeholder="Applied"
+              className={fieldClass}
+            />
+          </label>
+        </div>
+
+        <label className={`block ${labelClass}`}>
+          Internal comments
+          <span className="ml-2 text-xs font-normal text-muted-foreground">
+            Never visible to the candidate
+          </span>
+          <textarea
+            value={commentsInternal}
+            onChange={(event) => setCommentsInternal(event.target.value)}
+            rows={3}
+            className={`${fieldClass} h-auto resize-y py-3`}
           />
         </label>
+
+        {error ? (
+          <p
+            role="alert"
+            className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger"
+          >
+            {error}
+          </p>
+        ) : null}
       </div>
 
-      <label className={`block ${labelClass}`}>
-        Internal comments
-        <span className="ml-2 text-xs font-normal text-muted-foreground">
-          Never visible to the candidate
-        </span>
-        <textarea
-          value={commentsInternal}
-          onChange={(event) => setCommentsInternal(event.target.value)}
-          rows={3}
-          className={`${fieldClass} h-auto resize-y py-3`}
-        />
-      </label>
-
-      {error ? (
-        <p role="alert" className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
-
-      <div className="flex justify-end gap-3 border-t border-border pt-5">
+      <div className="mt-6 flex justify-end gap-3 border-t border-border pt-4">
         <button
           type="button"
           onClick={onCancel}
           disabled={submitting}
-          className="h-10 rounded-lg border border-border px-4 text-sm font-semibold transition hover:bg-muted disabled:opacity-50"
+          className="h-10 rounded-xl border border-border px-4 text-sm font-semibold transition hover:bg-muted disabled:opacity-50"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={submitting}
-          className="h-10 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-foreground transition hover:bg-accent-strong disabled:opacity-60"
+          className="h-10 rounded-xl bg-accent px-4 text-sm font-semibold text-accent-foreground transition hover:bg-accent-strong disabled:opacity-60"
         >
           {submitting ? "Saving…" : application ? "Save changes" : "Add application"}
         </button>
