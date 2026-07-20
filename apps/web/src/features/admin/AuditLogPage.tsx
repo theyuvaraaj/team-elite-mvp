@@ -19,7 +19,7 @@ export function AuditLogPage() {
   return (
     <AppShell title="Audit log" description="Trace administrative changes and application activity.">
       <AdminNav />
-      <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-xs">
+      <div className="data-table-wrap">
         {audit.isPending ? (
           <div className="grid gap-3 p-5">{[1, 2, 3, 4, 5].map((row) => <div key={row} className="h-14 animate-pulse rounded bg-muted" />)}</div>
         ) : audit.isError ? (

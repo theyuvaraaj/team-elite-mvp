@@ -60,13 +60,13 @@ export function AssignmentManagerPage() {
       ) : failed ? (
         <p role="alert" className="rounded-xl border border-danger/25 bg-danger/5 p-6 text-danger">Assignment data could not be loaded.</p>
       ) : candidates.length === 0 ? (
-        <div className="rounded-xl border border-border bg-surface p-12 text-center">
+        <div className="panel p-12 text-center">
           <p className="font-semibold">No candidates available</p>
           <p className="mt-2 text-sm text-muted-foreground">Invite a candidate before creating assignments.</p>
         </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-          <section className="rounded-xl border border-border bg-surface p-5 shadow-xs">
+          <section className="panel p-5">
             <label className="text-sm font-semibold">
               Candidate
               <select value={selectedCandidateId} onChange={(event) => { setCandidateId(event.target.value); setEmployeeId(""); }} className="mt-2 h-11 w-full rounded-lg border border-border bg-background px-3.5 text-sm outline-none focus:border-accent focus:ring-3 focus:ring-accent/15">
@@ -92,7 +92,7 @@ export function AssignmentManagerPage() {
               <p className="mt-1 text-sm text-muted-foreground">{assignments.length} active assignment{assignments.length === 1 ? "" : "s"} for this candidate.</p>
             </div>
             {error ? <p role="alert" className="mb-4 rounded-lg bg-danger/10 px-4 py-3 text-sm text-danger">{error}</p> : null}
-            <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-xs">
+            <div className="data-table-wrap">
               {assignments.length === 0 ? (
                 <div className="p-12 text-center"><p className="font-semibold">No employees assigned</p><p className="mt-2 text-sm text-muted-foreground">Select an employee to create the first assignment.</p></div>
               ) : (

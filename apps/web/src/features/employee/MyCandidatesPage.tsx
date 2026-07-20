@@ -23,10 +23,7 @@ function StatsCards({
   return (
     <section className="grid gap-4 sm:grid-cols-3" aria-label="Employee statistics">
       {cards.map((card) => (
-        <article
-          key={card.label}
-          className="rounded-xl border border-border bg-surface p-5 shadow-xs"
-        >
+        <article key={card.label} className="stat-card p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             {card.label}
           </p>
@@ -98,7 +95,7 @@ export function MyCandidatesPage() {
             </label>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-xs">
+          <div className="data-table-wrap">
             {candidatesQuery.isPending ? (
               <div className="grid gap-3 p-5" aria-label="Loading candidates">
                 {[1, 2, 3].map((item) => (

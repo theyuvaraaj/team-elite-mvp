@@ -4,6 +4,7 @@ import { postLoginPath } from "../../app/paths";
 import { AuthLayout } from "../../components/layout/AuthLayout";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
+import { PasswordInput } from "../../components/ui/PasswordInput";
 import { ApiError } from "../../lib/api";
 import { useAuth } from "./useAuth";
 
@@ -52,7 +53,7 @@ export function LoginPage() {
     >
       {successMessage ? (
         <div
-          className="mb-5 rounded-lg border border-success/25 bg-success/8 px-3.5 py-3 text-sm text-success"
+          className="mb-5 rounded-xl border border-success/25 bg-success/8 px-3.5 py-3 text-sm text-success"
           role="status"
         >
           Password set successfully. You can now sign in.
@@ -70,10 +71,9 @@ export function LoginPage() {
           required
           autoFocus
         />
-        <Input
+        <PasswordInput
           label="Password"
           name="password"
-          type="password"
           autoComplete="current-password"
           placeholder="Enter your password"
           value={password}
@@ -82,13 +82,13 @@ export function LoginPage() {
         />
         {error ? (
           <p
-            className="rounded-lg border border-danger/20 bg-danger/8 px-3.5 py-3 text-sm text-danger"
+            className="rounded-xl border border-danger/20 bg-danger/8 px-3.5 py-3 text-sm text-danger"
             role="alert"
           >
             {error}
           </p>
         ) : null}
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting} className="w-full">
           {isSubmitting ? "Signing in…" : "Sign in"}
         </Button>
       </form>

@@ -26,7 +26,7 @@ export function QuickAddApplication({
         role="dialog"
         aria-modal="true"
         aria-labelledby="application-dialog-title"
-        className="my-8 w-full max-w-2xl rounded-2xl border border-border bg-surface p-6 shadow-2xl sm:p-7"
+        className="panel my-8 w-full max-w-2xl p-6 sm:p-7"
       >
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
@@ -35,7 +35,7 @@ export function QuickAddApplication({
             </p>
             <h2
               id="application-dialog-title"
-              className="mt-2 text-xl font-semibold tracking-tight"
+              className="mt-2 font-display text-2xl tracking-tight"
             >
               {application ? "Edit application" : "Add application"}
             </h2>

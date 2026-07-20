@@ -149,7 +149,7 @@ export function CandidateDetailPage() {
         </div>
       ) : (
         <div className="space-y-8">
-          <section className="rounded-xl border border-border bg-surface p-5 shadow-xs">
+          <section className="panel p-5">
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {[
                 ["Primary role", candidate.primaryRole || "Not provided"],
@@ -189,7 +189,7 @@ export function CandidateDetailPage() {
               </button>
             </div>
 
-            <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-xs">
+            <div className="data-table-wrap">
               {applicationsQuery.isPending ? (
                 <div className="grid gap-3 p-5" aria-label="Loading applications">
                   {[1, 2, 3].map((item) => (

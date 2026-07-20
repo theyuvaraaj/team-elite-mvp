@@ -35,7 +35,7 @@ export function AdminOverviewPage() {
         ) : (
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Admin statistics">
             {cards.map(([label, value]) => (
-              <article key={label} className="rounded-xl border border-border bg-surface p-5 shadow-xs">
+              <article key={label} className="stat-card p-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   {label}
                 </p>
@@ -63,7 +63,7 @@ export function AdminOverviewPage() {
               View audit log
             </Link>
           </div>
-          <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-xs">
+          <div className="data-table-wrap">
             {audit.isPending ? (
               <div className="grid gap-3 p-5">
                 {[1, 2, 3].map((row) => <div key={row} className="h-12 animate-pulse rounded bg-muted" />)}

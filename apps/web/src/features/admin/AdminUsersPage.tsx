@@ -196,7 +196,7 @@ export function AdminUsersPage() {
       </div>
       {message ? <p role="status" className="mb-4 rounded-lg bg-success/10 px-4 py-3 text-sm text-success">{message}</p> : null}
       {actionError ? <p role="alert" className="mb-4 rounded-lg bg-danger/10 px-4 py-3 text-sm text-danger">{actionError}</p> : null}
-      <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-xs">
+      <div className="data-table-wrap">
         {loading ? (
           <div className="grid gap-3 p-5">{[1, 2, 3].map((row) => <div key={row} className="h-14 animate-pulse rounded bg-muted" />)}</div>
         ) : failed ? (

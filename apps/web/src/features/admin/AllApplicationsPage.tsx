@@ -39,7 +39,7 @@ export function AllApplicationsPage() {
         </div>
         <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search candidate, company, or update…" className="h-10 rounded-lg border border-border bg-surface px-3.5 text-sm outline-none focus:border-accent focus:ring-3 focus:ring-accent/15 sm:w-80" />
       </div>
-      <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-xs">
+      <div className="data-table-wrap">
         {applicationsQuery.isPending || candidatesQuery.isPending ? (
           <div className="grid gap-3 p-5">{[1, 2, 3, 4].map((row) => <div key={row} className="h-14 animate-pulse rounded bg-muted" />)}</div>
         ) : applicationsQuery.isError || candidatesQuery.isError ? (

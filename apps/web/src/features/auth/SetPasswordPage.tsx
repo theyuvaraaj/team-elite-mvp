@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthLayout } from "../../components/layout/AuthLayout";
 import { Button } from "../../components/ui/Button";
-import { Input } from "../../components/ui/Input";
+import { PasswordInput } from "../../components/ui/PasswordInput";
 import { ApiError, api } from "../../lib/api";
 
 export function SetPasswordPage() {
@@ -49,7 +49,7 @@ export function SetPasswordPage() {
     >
       {!token ? (
         <div className="grid gap-5">
-          <p className="rounded-lg border border-danger/20 bg-danger/8 px-3.5 py-3 text-sm leading-6 text-danger">
+          <p className="rounded-xl border border-danger/20 bg-danger/8 px-3.5 py-3 text-sm leading-6 text-danger">
             This invitation link is incomplete. Request a new invitation from
             your administrator.
           </p>
@@ -62,11 +62,10 @@ export function SetPasswordPage() {
         </div>
       ) : (
         <form className="grid gap-5" onSubmit={(event) => void handleSubmit(event)}>
-          <Input
+          <PasswordInput
             label="New password"
             hint="8+ characters"
             name="password"
-            type="password"
             minLength={8}
             autoComplete="new-password"
             value={password}
@@ -74,10 +73,9 @@ export function SetPasswordPage() {
             required
             autoFocus
           />
-          <Input
+          <PasswordInput
             label="Confirm password"
             name="confirmation"
-            type="password"
             minLength={8}
             autoComplete="new-password"
             value={confirmation}
@@ -86,13 +84,13 @@ export function SetPasswordPage() {
           />
           {error ? (
             <p
-              className="rounded-lg border border-danger/20 bg-danger/8 px-3.5 py-3 text-sm text-danger"
+              className="rounded-xl border border-danger/20 bg-danger/8 px-3.5 py-3 text-sm text-danger"
               role="alert"
             >
               {error}
             </p>
           ) : null}
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} className="w-full">
             {isSubmitting ? "Setting password…" : "Set password"}
           </Button>
         </form>

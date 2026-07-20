@@ -12,7 +12,7 @@ export function AdminNav() {
   return (
     <nav
       aria-label="Admin sections"
-      className="mb-8 flex gap-1 overflow-x-auto rounded-xl border border-border bg-surface p-1.5 shadow-xs"
+      className="panel mb-8 flex gap-1 overflow-x-auto p-1.5"
     >
       {items.map((item) => (
         <NavLink

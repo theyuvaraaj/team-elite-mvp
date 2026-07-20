@@ -5,6 +5,9 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   hint?: string;
 }
 
+const fieldClass =
+  "h-11 w-full rounded-xl border border-border bg-surface px-3.5 text-[15px] text-foreground shadow-[inset_0_1px_0_rgb(255_255_255_/_0.04)] outline-none transition placeholder:text-muted-foreground/65 hover:border-muted-foreground/35 focus:border-accent focus:ring-4 focus:ring-accent/15";
+
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   { label, hint, id, className = "", ...props },
   ref,
@@ -12,8 +15,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   const inputId = id ?? props.name;
   return (
     <label className="grid gap-2 text-sm font-medium text-foreground" htmlFor={inputId}>
-      <span className="flex items-center justify-between">
-        {label}
+      <span className="flex items-center justify-between gap-3">
+        <span>{label}</span>
         {hint ? (
           <span className="font-normal text-muted-foreground">{hint}</span>
         ) : null}
@@ -21,9 +24,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       <input
         ref={ref}
         id={inputId}
-        className={`h-11 rounded-lg border border-border bg-surface px-3.5 text-foreground shadow-xs outline-none transition placeholder:text-muted-foreground/70 focus:border-accent focus:ring-3 focus:ring-accent/15 ${className}`}
+        className={`${fieldClass} ${className}`}
         {...props}
       />
     </label>
   );
 });
+
+export { fieldClass };

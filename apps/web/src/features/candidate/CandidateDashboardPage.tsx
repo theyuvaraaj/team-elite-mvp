@@ -63,10 +63,7 @@ function StatCards({
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((card) => (
-          <article
-            key={card.label}
-            className="rounded-xl border border-border bg-surface p-5 shadow-xs"
-          >
+          <article key={card.label} className="stat-card p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               {card.label}
             </p>
@@ -229,7 +226,7 @@ export function CandidateDashboardPage() {
             </p>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-xs">
+          <div className="data-table-wrap">
             <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row">
               <label className="flex-1">
                 <span className="sr-only">Search applications</span>
