@@ -4,7 +4,9 @@
 
 @theme inline {
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "IBM Plex Serif", "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-display: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-elevated: var(--surface-elevated);
@@ -16,54 +18,77 @@
   --color-accent-strong: var(--accent-strong);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent-soft: var(--accent-soft);
+  --color-brand: var(--brand);
   --color-ring: var(--ring);
   --color-success: var(--success);
   --color-danger: var(--danger);
   --shadow-panel: var(--shadow-panel);
+
+  /* Ledger corners: crisp, never pill-soft (avatars keep rounded-full) */
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 5px;
+  --radius-2xl: 6px;
+  --radius-3xl: 8px;
+  --radius: 3px;
 }
 
 :root {
   color-scheme: light;
-  --background: #f4f7f5;
-  --surface: #ffffff;
-  --surface-elevated: #ffffff;
-  --foreground: #0b3022;
-  --muted: #e6eeea;
-  --muted-foreground: #5a6e64;
-  --border: #d2ded7;
-  --accent: #0b3022;
-  --accent-strong: #072419;
-  --accent-foreground: #f7faf8;
-  --accent-soft: #dceae3;
-  --ring: #1a4d3a;
-  --success: #0f766e;
-  --danger: #b42318;
-  --shadow-panel: 0 1px 2px rgb(11 48 34 / 4%), 0 12px 32px rgb(11 48 34 / 6%);
-  --page-glow: radial-gradient(ellipse 80% 50% at 50% -20%, #d5e8df 0%, transparent 55%),
-    radial-gradient(ellipse 60% 40% at 100% 0%, #e8f0ea 0%, transparent 40%),
-    linear-gradient(180deg, #f8faf8 0%, #eef3f0 100%);
+  /* Ledger stock — warm cream paper, ink figures, red ink spark */
+  --background: #efe9db;
+  --surface: #faf6ec;
+  --surface-elevated: #fffdf7;
+  --foreground: #211d16;
+  --muted: #e6ddca;
+  --muted-foreground: #6f6552;
+  --border: #d5cab1;
+  --accent: #26221a;
+  --accent-strong: #14110c;
+  --accent-foreground: #f7f2e6;
+  --accent-soft: #e2dac5;
+  --brand: #ab3016;
+  --ring: #ab3016;
+  --success: #3f6e26;
+  --danger: #ab3016;
+  --shadow-panel: 0 1px 0 rgb(33 29 22 / 4%), 0 14px 34px rgb(33 29 22 / 8%);
+  /* faint ruled-paper hairlines */
+  --page-rule: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 33px,
+    color-mix(in srgb, var(--border) 42%, transparent) 33px,
+    color-mix(in srgb, var(--border) 42%, transparent) 34px
+  );
 }
 
 .dark {
   color-scheme: dark;
-  --background: #071410;
-  --surface: #0d1c17;
-  --surface-elevated: #12241e;
-  --foreground: #f3f0e8;
-  --muted: #172821;
-  --muted-foreground: #9aafa4;
-  --border: #24352e;
-  --accent: #c8d9cf;
-  --accent-strong: #e8f0ea;
-  --accent-foreground: #0b3022;
-  --accent-soft: #1a3229;
-  --ring: #c8d9cf;
-  --success: #4fc3a2;
-  --danger: #f97066;
-  --shadow-panel: 0 1px 2px rgb(0 0 0 / 35%), 0 16px 40px rgb(0 0 0 / 35%);
-  --page-glow: radial-gradient(ellipse 70% 45% at 50% -15%, #143028 0%, transparent 50%),
-    radial-gradient(ellipse 50% 35% at 100% 0%, #0f2924 0%, transparent 45%),
-    linear-gradient(180deg, #0a1511 0%, #071410 100%);
+  /* Ledger stock — warm ink-black paper */
+  --background: #17130d;
+  --surface: #1e1810;
+  --surface-elevated: #241d13;
+  --foreground: #ece2cd;
+  --muted: #241d13;
+  --muted-foreground: #a3977e;
+  --border: #392f1e;
+  --accent: #e7dbbf;
+  --accent-strong: #f4ecd7;
+  --accent-foreground: #17130d;
+  --accent-soft: #2a2115;
+  --brand: #e8623f;
+  --ring: #e8623f;
+  --success: #86b45f;
+  --danger: #e8623f;
+  --shadow-panel: 0 1px 0 rgb(0 0 0 / 30%), 0 18px 42px rgb(0 0 0 / 42%);
+  --page-rule: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 33px,
+    color-mix(in srgb, var(--border) 55%, transparent) 33px,
+    color-mix(in srgb, var(--border) 55%, transparent) 34px
+  );
 }
 
 @layer base {
@@ -75,7 +100,7 @@
     font-family: var(--font-sans);
     font-size: 16px;
     line-height: 1.5;
-    letter-spacing: -0.011em;
+    letter-spacing: -0.006em;
     background: var(--background);
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
@@ -85,8 +110,7 @@
     margin: 0;
     min-width: 320px;
     min-height: 100vh;
-    background: var(--page-glow);
-    background-attachment: fixed;
+    background: var(--background);
     color: var(--foreground);
   }
 
@@ -98,68 +122,96 @@
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--accent) 28%, transparent);
+    background: color-mix(in srgb, var(--brand) 24%, transparent);
+  }
+
+  /* tabular figures everywhere numbers appear */
+  .font-mono {
+    font-feature-settings: "tnum" 1;
   }
 }
 
 @layer utilities {
+  /* Ledger titles: heavy, tight grotesque — deliberately not serif */
   .font-display {
     font-family: var(--font-display);
-    font-weight: 600;
-    letter-spacing: -0.015em;
-    line-height: 1.2;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
   }
 
+  /* Mono uppercase micro-label — the ledger's section/column voice */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  /* Solid paper card — no glass, no blur */
   .panel {
-    border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
-    border-radius: 1rem;
-    background: color-mix(in srgb, var(--surface) 92%, transparent);
-    box-shadow: var(--shadow-panel);
-    backdrop-filter: blur(10px);
-  }
-
-  .stat-card {
-    border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
-    border-radius: 1rem;
-    background:
-      linear-gradient(
-        160deg,
-        color-mix(in srgb, var(--accent) 6%, var(--surface)) 0%,
-        var(--surface) 42%
-      );
-    box-shadow: var(--shadow-panel);
-    transition:
-      transform 180ms ease,
-      border-color 180ms ease,
-      box-shadow 180ms ease;
-  }
-
-  .stat-card:hover {
-    transform: translateY(-1px);
-    border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
-  }
-
-  .data-table-wrap {
-    overflow: hidden;
-    border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
-    border-radius: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 5px;
     background: var(--surface);
     box-shadow: var(--shadow-panel);
   }
 
+  /* Ledger running-total cell */
+  .stat-card {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--surface);
+    box-shadow: 0 1px 0 rgb(33 29 22 / 3%);
+    transition:
+      border-color 160ms ease,
+      background 160ms ease;
+  }
+
+  .stat-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 2px;
+    background: var(--foreground);
+    opacity: 0.85;
+  }
+
+  .stat-card:hover {
+    border-color: color-mix(in srgb, var(--foreground) 32%, var(--border));
+    background: var(--surface-elevated);
+  }
+
+  .data-table-wrap {
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--surface);
+    box-shadow: var(--shadow-panel);
+  }
+
+  /* Numbers/identifiers helper */
+  .led-figure {
+    font-family: var(--font-mono);
+    font-feature-settings: "tnum" 1;
+    letter-spacing: -0.02em;
+  }
+
   .animate-rise {
-    animation: rise-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: rise-in 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .animate-rise-delay {
-    animation: rise-in 520ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
+    animation: rise-in 460ms cubic-bezier(0.22, 1, 0.36, 1) 70ms both;
   }
 }
 
 @keyframes rise-in {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -167,25 +219,18 @@
   }
 }
 
+/* Ledger ruled-paper backdrop for the app canvas */
+.ledger-paper {
+  background-image: var(--page-rule);
+}
+
+/* Ruled-ledger backdrop for the auth ink panel — horizontal rules, like the page */
 .auth-mesh {
-  background-image:
-    radial-gradient(at 18% 22%, color-mix(in srgb, var(--accent) 22%, transparent) 0px, transparent 45%),
-    radial-gradient(at 82% 12%, color-mix(in srgb, #94a3b8 18%, transparent) 0px, transparent 42%),
-    radial-gradient(at 70% 78%, color-mix(in srgb, var(--accent) 14%, transparent) 0px, transparent 40%),
-    linear-gradient(
-      to right,
-      color-mix(in srgb, var(--border) 35%, transparent) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      to bottom,
-      color-mix(in srgb, var(--border) 35%, transparent) 1px,
-      transparent 1px
-    );
-  background-size:
-    auto,
-    auto,
-    auto,
-    48px 48px,
-    48px 48px;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 37px,
+    color-mix(in srgb, currentColor 11%, transparent) 37px,
+    color-mix(in srgb, currentColor 11%, transparent) 38px
+  );
 }

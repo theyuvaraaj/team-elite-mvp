@@ -32,12 +32,14 @@ function toDateKey(value: string): string {
 function ProbabilityBadge({ value }: { value: string | null }) {
   const tone =
     value?.toLowerCase() === "high"
-      ? "bg-success/10 text-success"
+      ? "border-success/40 text-success"
       : value?.toLowerCase() === "low"
-        ? "bg-danger/10 text-danger"
-        : "bg-muted text-muted-foreground";
+        ? "border-danger/40 text-danger"
+        : "border-border text-muted-foreground";
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${tone}`}>
+    <span
+      className={`inline-flex rounded-[3px] border px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.08em] ${tone}`}
+    >
       {value || "Not set"}
     </span>
   );
@@ -218,7 +220,7 @@ function ApplicationsListView({
           <col className="w-[10%]" />
         </colgroup>
         <thead>
-          <tr className="border-b border-border bg-muted/45 text-xs uppercase tracking-[0.08em] text-muted-foreground">
+          <tr className="border-b-2 border-foreground/80 bg-muted/45">
             {[
               "Company",
               "Date",
@@ -228,7 +230,10 @@ function ApplicationsListView({
               "Links",
               "Actions",
             ].map((heading) => (
-              <th key={heading} className="px-4 py-3 font-semibold">
+              <th
+                key={heading}
+                className="px-4 py-3 font-mono text-[10.5px] uppercase tracking-[0.12em] font-medium text-muted-foreground"
+              >
                 {heading}
               </th>
             ))}
@@ -243,7 +248,7 @@ function ApplicationsListView({
               <td className="px-4 py-4 font-semibold">
                 <span className="line-clamp-2 break-words">{application.companyName}</span>
               </td>
-              <td className="whitespace-nowrap px-4 py-4 text-muted-foreground">
+              <td className="whitespace-nowrap px-4 py-4 font-mono tracking-tight text-muted-foreground">
                 {formatDate(application.appliedDate)}
               </td>
               <td className="px-4 py-4">
@@ -300,7 +305,7 @@ function ApplicationsCardView({
               <h3 className="truncate text-base font-semibold tracking-tight">
                 {application.companyName}
               </h3>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 font-mono text-xs tracking-tight text-muted-foreground">
                 {formatDate(application.appliedDate)}
               </p>
             </div>
@@ -309,7 +314,7 @@ function ApplicationsCardView({
 
           <dl className="mt-4 space-y-3 text-sm">
             <div>
-              <dt className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+              <dt className="eyebrow">
                 Updates
               </dt>
               <dd className="mt-1 line-clamp-2 break-words text-foreground">
@@ -317,7 +322,7 @@ function ApplicationsCardView({
               </dd>
             </div>
             <div>
-              <dt className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+              <dt className="eyebrow">
                 Internal comments
               </dt>
               <dd
@@ -444,7 +449,7 @@ export function CandidateDetailPage() {
                 ["Email", candidate.email || candidate.user.email],
               ].map(([label, value]) => (
                 <div key={label}>
-                  <p className="text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                  <p className="eyebrow">
                     {label}
                   </p>
                   <p className="mt-2 text-sm font-medium">{value}</p>
@@ -514,7 +519,7 @@ export function CandidateDetailPage() {
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Company, updates, comments…"
-                  className="h-10 rounded-xl border border-border bg-background px-3 text-sm font-medium text-foreground outline-none focus:border-accent focus:ring-4 focus:ring-accent/15"
+                  className="h-10 rounded-[4px] border border-border bg-surface px-3 text-sm font-medium text-foreground outline-none focus:border-ring focus:ring-4 focus:ring-ring/18"
                 />
               </label>
               <div className="grid gap-1.5 text-xs font-semibold text-muted-foreground">
@@ -539,7 +544,7 @@ export function CandidateDetailPage() {
                   type="date"
                   value={dateFrom}
                   onChange={(event) => setDateFrom(event.target.value)}
-                  className="h-10 rounded-xl border border-border bg-background px-3 text-sm font-medium text-foreground outline-none focus:border-accent focus:ring-4 focus:ring-accent/15"
+                  className="h-10 rounded-[4px] border border-border bg-surface px-3 text-sm font-medium text-foreground outline-none focus:border-ring focus:ring-4 focus:ring-ring/18"
                 />
               </label>
               <label className="grid gap-1.5 text-xs font-semibold text-muted-foreground">
@@ -548,7 +553,7 @@ export function CandidateDetailPage() {
                   type="date"
                   value={dateTo}
                   onChange={(event) => setDateTo(event.target.value)}
-                  className="h-10 rounded-xl border border-border bg-background px-3 text-sm font-medium text-foreground outline-none focus:border-accent focus:ring-4 focus:ring-accent/15"
+                  className="h-10 rounded-[4px] border border-border bg-surface px-3 text-sm font-medium text-foreground outline-none focus:border-ring focus:ring-4 focus:ring-ring/18"
                 />
               </label>
               <div className="grid gap-1.5 text-xs font-semibold text-muted-foreground sm:col-span-2 lg:col-span-2">

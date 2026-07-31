@@ -33,16 +33,16 @@ export function AppShell({
   }
 
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-20 border-b border-border/70 bg-background/75 backdrop-blur-xl">
-        <div className="mx-auto flex h-[4.25rem] max-w-7xl items-center justify-between px-5 sm:px-8">
+    <div className="ledger-paper min-h-screen">
+      <header className="sticky top-0 z-20 border-b-2 border-foreground/85 bg-surface">
+        <div className="mx-auto flex h-[4.25rem] max-w-7xl items-center justify-between gap-4 px-5 sm:px-8">
           <BrandLogo />
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-2.5">
             <button
               type="button"
               onClick={() => setDark((value) => !value)}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-surface/90 px-3 text-xs font-semibold text-muted-foreground transition hover:border-muted-foreground/30 hover:text-foreground"
+              className="inline-flex h-10 items-center gap-2 rounded-[4px] border border-border bg-surface px-3 font-mono text-[11px] uppercase tracking-[0.1em] text-muted-foreground transition hover:border-muted-foreground/45 hover:text-foreground"
               aria-label={`Switch to ${dark ? "light" : "dark"} mode`}
             >
               {dark ? <SunIcon /> : <MoonIcon />}
@@ -51,30 +51,36 @@ export function AppShell({
 
             <Link
               to="/profile"
-              className="hidden items-center gap-3 rounded-2xl border border-border bg-surface/90 px-3 py-2 transition hover:border-accent/40 sm:flex"
+              className="hidden items-center gap-3 rounded-[4px] border border-border bg-surface px-3 py-2 transition hover:border-muted-foreground/45 sm:flex"
               title="Edit profile"
             >
-              <div className="min-w-0">
-                <p className="truncate text-xs font-semibold text-foreground">
+              <span
+                aria-hidden="true"
+                className="grid size-7 place-items-center rounded-[3px] bg-accent font-mono text-[11px] font-semibold text-accent-foreground"
+              >
+                {(user?.name ?? "").slice(0, 2).toUpperCase()}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-xs font-semibold text-foreground">
                   {user?.name}
-                </p>
-                <p className="text-[11px] capitalize text-muted-foreground">
-                  {user?.role.toLowerCase()} · Edit profile
-                </p>
-              </div>
+                </span>
+                <span className="block font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                  {user?.role.toLowerCase()} · edit
+                </span>
+              </span>
             </Link>
 
             <Link
               to="/profile"
-              className="inline-flex h-10 items-center rounded-xl border border-border bg-surface/90 px-3 text-xs font-semibold sm:hidden"
+              className="inline-flex h-10 items-center rounded-[4px] border border-border bg-surface px-3 text-xs font-semibold sm:hidden"
             >
               Profile
             </Link>
 
             <Button
               type="button"
-              variant="ghost"
-              className="h-10 px-3 text-xs"
+              variant="secondary"
+              className="h-10 px-3.5 text-xs"
               onClick={() => void handleLogout()}
             >
               Sign out
@@ -83,19 +89,26 @@ export function AppShell({
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-12">
-        <div className="max-w-3xl animate-rise">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent">
-            {user?.role}
-          </p>
-          <h1 className="mt-3 font-display text-[2rem] tracking-tight text-foreground sm:text-[2.35rem]">
-            {title}
-          </h1>
-          <p className="mt-3 max-w-2xl text-[15px] leading-7 text-muted-foreground">
-            {description}
-          </p>
+      <main className="mx-auto max-w-7xl px-5 py-9 sm:px-8 sm:py-11">
+        <div className="animate-rise border-b border-border pb-7">
+          <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+            <div className="max-w-3xl">
+              <p className="eyebrow text-brand">{user?.role}</p>
+              <h1 className="mt-2.5 font-display text-[2.05rem] text-foreground sm:text-[2.4rem]">
+                {title}
+              </h1>
+              <p className="mt-3 max-w-2xl text-[15px] leading-7 text-muted-foreground">
+                {description}
+              </p>
+            </div>
+            <p className="hidden font-mono text-[11px] uppercase leading-5 tracking-[0.1em] text-muted-foreground sm:block sm:text-right">
+              Team Elite
+              <br />
+              Secure&nbsp;·&nbsp;Scoped
+            </p>
+          </div>
         </div>
-        <div className="mt-10 animate-rise-delay">{children}</div>
+        <div className="mt-9 animate-rise-delay">{children}</div>
       </main>
     </div>
   );

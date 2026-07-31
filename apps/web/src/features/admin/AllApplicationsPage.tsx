@@ -37,7 +37,7 @@ export function AllApplicationsPage() {
           <h2 className="text-lg font-semibold tracking-tight">Applications</h2>
           <p className="mt-1 text-sm text-muted-foreground">{applications.length} matching record{applications.length === 1 ? "" : "s"}</p>
         </div>
-        <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search candidate, company, or update…" className="h-10 rounded-lg border border-border bg-surface px-3.5 text-sm outline-none focus:border-accent focus:ring-3 focus:ring-accent/15 sm:w-80" />
+        <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search candidate, company, or update…" className="h-10 rounded-[4px] border border-border bg-surface px-3.5 text-sm outline-none focus:border-ring focus:ring-4 focus:ring-ring/18 sm:w-80" />
       </div>
       <div className="data-table-wrap">
         {applicationsQuery.isPending || candidatesQuery.isPending ? (
@@ -49,20 +49,20 @@ export function AllApplicationsPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1100px] text-left text-sm">
-              <thead><tr className="border-b border-border bg-muted/45 text-xs uppercase tracking-[0.08em] text-muted-foreground">
-                {["Candidate", "Company", "Date", "Probability", "Update", "Internal comments", "Submitted by", "Links"].map((heading) => <th key={heading} className="px-4 py-3 font-semibold">{heading}</th>)}
+              <thead><tr className="border-b-2 border-foreground/80 bg-muted/45">
+                {["Candidate", "Company", "Date", "Probability", "Update", "Internal comments", "Submitted by", "Links"].map((heading) => <th key={heading} className="px-4 py-3 font-mono text-[10.5px] uppercase tracking-[0.12em] font-medium text-muted-foreground">{heading}</th>)}
               </tr></thead>
               <tbody>
                 {applications.map((application) => (
                   <tr key={application.id} className="border-b border-border/70 last:border-0 hover:bg-muted/30">
                     <td className="px-4 py-4 font-semibold">{candidateNames.get(application.candidateId) ?? "Unknown candidate"}</td>
                     <td className="px-4 py-4 font-semibold">{application.companyName}</td>
-                    <td className="whitespace-nowrap px-4 py-4 text-muted-foreground">{formatDate(application.appliedDate)}</td>
-                    <td className="px-4 py-4"><span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">{application.probability || "Not set"}</span></td>
+                    <td className="whitespace-nowrap px-4 py-4 font-mono tracking-tight text-muted-foreground">{formatDate(application.appliedDate)}</td>
+                    <td className="px-4 py-4"><span className="inline-flex rounded-[3px] border border-border px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground">{application.probability || "Not set"}</span></td>
                     <td className="max-w-48 px-4 py-4 text-muted-foreground">{application.updates || "—"}</td>
                     <td className="max-w-56 px-4 py-4 text-muted-foreground">{application.commentsInternal || "—"}</td>
                     <td className="px-4 py-4 text-muted-foreground">{application.submittedBy?.name || "System"}</td>
-                    <td className="whitespace-nowrap px-4 py-4"><a href={application.jobLink} target="_blank" rel="noreferrer" className="font-semibold text-accent hover:underline">Job</a>{application.resumeLink ? <a href={application.resumeLink} target="_blank" rel="noreferrer" className="ml-3 font-semibold text-accent hover:underline">Resume</a> : null}</td>
+                    <td className="whitespace-nowrap px-4 py-4"><a href={application.jobLink} target="_blank" rel="noreferrer" className="font-mono text-[11px] uppercase tracking-[0.1em] text-brand hover:underline">Job</a>{application.resumeLink ? <a href={application.resumeLink} target="_blank" rel="noreferrer" className="ml-3 font-mono text-[11px] uppercase tracking-[0.1em] text-brand hover:underline">Resume</a> : null}</td>
                   </tr>
                 ))}
               </tbody>

@@ -23,13 +23,13 @@ function StatsCards({
     <section className="grid gap-4 sm:grid-cols-2" aria-label="Employee statistics">
       {cards.map((card) => (
         <article key={card.label} className="stat-card p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <p className="eyebrow">
             {card.label}
           </p>
           {loading ? (
             <div className="mt-3 h-9 w-14 animate-pulse rounded bg-muted" />
           ) : (
-            <p className="mt-2 text-3xl font-semibold tracking-tight">
+            <p className="led-figure mt-2 text-[2rem] font-semibold tracking-tight text-foreground">
               {card.value ?? 0}
             </p>
           )}
@@ -89,7 +89,7 @@ export function MyCandidatesPage() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search candidates…"
-                className="h-10 w-full rounded-lg border border-border bg-surface px-3.5 text-sm outline-none focus:border-accent focus:ring-3 focus:ring-accent/15 sm:w-72"
+                className="h-10 w-full rounded-[4px] border border-border bg-surface px-3.5 text-sm outline-none focus:border-ring focus:ring-4 focus:ring-ring/18 sm:w-72"
               />
             </label>
           </div>
@@ -131,7 +131,7 @@ export function MyCandidatesPage() {
                       to={`/employee/candidates/${candidate.id}`}
                       className="group flex items-center gap-4 px-5 py-4 transition hover:bg-muted/40"
                     >
-                      <span className="grid size-11 shrink-0 place-items-center rounded-full bg-accent/10 text-sm font-bold text-accent">
+                      <span className="grid size-11 shrink-0 place-items-center rounded-[4px] bg-accent text-sm font-bold text-accent-foreground font-mono">
                         {candidate.user.name
                           .split(" ")
                           .slice(0, 2)

@@ -35,14 +35,14 @@ export function AdminOverviewPage() {
         ) : (
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Admin statistics">
             {cards.map(([label, value]) => (
-              <article key={label} className="stat-card p-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                  {label}
-                </p>
+              <article key={label} className="stat-card p-5 pt-6">
+                <p className="eyebrow">{label}</p>
                 {stats.isPending ? (
                   <div className="mt-3 h-9 w-16 animate-pulse rounded bg-muted" />
                 ) : (
-                  <p className="mt-2 text-3xl font-semibold tracking-tight">{value ?? 0}</p>
+                  <p className="led-figure mt-3 text-[2rem] font-semibold text-foreground">
+                    {value ?? 0}
+                  </p>
                 )}
               </article>
             ))}
@@ -59,8 +59,11 @@ export function AdminOverviewPage() {
                 The latest administrative and application events.
               </p>
             </div>
-            <Link to="/admin/audit" className="text-sm font-semibold text-accent hover:underline">
-              View audit log
+            <Link
+              to="/admin/audit"
+              className="font-mono text-[11px] uppercase tracking-[0.1em] text-brand hover:underline"
+            >
+              View audit log →
             </Link>
           </div>
           <div className="data-table-wrap">
@@ -79,7 +82,7 @@ export function AdminOverviewPage() {
                       <span className="text-muted-foreground">{formatAction(entry.action)}</span>{" "}
                       <span className="font-medium">{entry.entity}</span>
                     </p>
-                    <time className="text-xs text-muted-foreground" dateTime={entry.createdAt}>
+                    <time className="font-mono text-[11px] tracking-tight text-muted-foreground" dateTime={entry.createdAt}>
                       {new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(entry.createdAt))}
                     </time>
                   </li>

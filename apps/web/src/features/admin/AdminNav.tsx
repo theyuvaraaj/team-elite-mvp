@@ -12,7 +12,7 @@ export function AdminNav() {
   return (
     <nav
       aria-label="Admin sections"
-      className="panel mb-8 flex gap-1 overflow-x-auto p-1.5"
+      className="mb-8 flex gap-6 overflow-x-auto border-b border-border"
     >
       {items.map((item) => (
         <NavLink
@@ -20,10 +20,10 @@ export function AdminNav() {
           to={item.to}
           end={item.end}
           className={({ isActive }) =>
-            `whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-semibold transition ${
+            `-mb-px whitespace-nowrap border-b-2 px-0.5 py-3 font-mono text-[12px] uppercase tracking-[0.1em] transition ${
               isActive
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                ? "border-brand text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`
           }
         >

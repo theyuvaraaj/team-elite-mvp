@@ -116,7 +116,7 @@ export function ProfilePage() {
     >
       <Link
         to={home}
-        className="mb-6 inline-flex text-sm font-semibold text-accent hover:underline"
+        className="mb-6 inline-flex font-mono text-[11px] uppercase tracking-[0.1em] text-brand hover:underline"
       >
         ← Back to dashboard
       </Link>
@@ -135,13 +135,15 @@ export function ProfilePage() {
           onSubmit={(event) => void handleSubmit(event)}
           className="grid max-w-2xl gap-6 rounded-2xl border border-border bg-surface p-6 sm:p-7"
         >
-          <div>
-            <p className="text-sm font-semibold">{name || profile?.name}</p>
-            <p className="text-xs capitalize text-muted-foreground">
+          <div className="border-b border-border pb-5">
+            <p className="text-base font-semibold text-foreground">
+              {name || profile?.name}
+            </p>
+            <p className="eyebrow mt-1.5">
               {profile?.role.toLowerCase()} · {profile?.email}
             </p>
             {profile?.employeeCode ? (
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 font-mono text-[11px] tracking-tight text-muted-foreground">
                 Code {profile.employeeCode}
               </p>
             ) : null}
@@ -160,7 +162,7 @@ export function ProfilePage() {
             <input
               value={profile?.email ?? ""}
               disabled
-              className="h-11 rounded-xl border border-border bg-muted px-3.5 text-sm text-muted-foreground"
+              className="h-11 rounded-[4px] border border-border bg-muted px-3.5 font-mono text-sm text-muted-foreground"
             />
           </label>
 
@@ -207,7 +209,7 @@ export function ProfilePage() {
                   value={address}
                   onChange={(event) => setAddress(event.target.value)}
                   rows={3}
-                  className="rounded-xl border border-border bg-surface px-3.5 py-3 text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent/15"
+                  className="rounded-[4px] border border-border bg-surface px-3.5 py-3 text-sm outline-none transition focus:border-ring focus:ring-4 focus:ring-ring/18"
                 />
               </label>
             </>

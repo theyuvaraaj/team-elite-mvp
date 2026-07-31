@@ -63,21 +63,19 @@ function StatCards({
       </div>
       <div className="grid gap-4 sm:grid-cols-3">
         {cards.map((card) => (
-          <article key={card.label} className="stat-card p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              {card.label}
-            </p>
+          <article key={card.label} className="stat-card p-5 pt-6">
+            <p className="eyebrow">{card.label}</p>
             {loading ? (
               <div
                 className="mt-4 h-9 w-16 animate-pulse rounded-md bg-muted"
                 aria-label={`Loading ${card.label}`}
               />
             ) : (
-              <p className="mt-3 text-3xl font-semibold tracking-tight">
+              <p className="led-figure mt-3 text-[2rem] font-semibold text-foreground">
                 {card.value ?? 0}
               </p>
             )}
-            <p className="mt-2 min-h-4 text-xs text-muted-foreground">
+            <p className="mt-2 min-h-4 font-mono text-[10.5px] uppercase tracking-[0.1em] text-muted-foreground">
               {card.note ?? ""}
             </p>
           </article>
@@ -111,13 +109,15 @@ function ProbabilityBadge({ value }: { value: string | null }) {
   const normalized = value?.toLowerCase();
   const color =
     normalized === "high"
-      ? "bg-success/10 text-success"
+      ? "border-success/40 text-success"
       : normalized === "low"
-        ? "bg-danger/10 text-danger"
-        : "bg-muted text-muted-foreground";
+        ? "border-danger/40 text-danger"
+        : "border-border text-muted-foreground";
 
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${color}`}>
+    <span
+      className={`inline-flex rounded-[3px] border px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.08em] ${color}`}
+    >
       {value || "Not set"}
     </span>
   );
@@ -132,10 +132,10 @@ function ApplicationsTable({
     <div className="overflow-x-auto">
       <table className="w-full min-w-[760px] border-collapse text-left text-sm">
         <thead>
-          <tr className="border-b border-border bg-muted/45 text-xs uppercase tracking-[0.08em] text-muted-foreground">
+          <tr className="border-b-2 border-foreground/80 bg-muted/50 font-mono text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground">
             {["Company", "Date", "Probability", "Resume", "Job", "Updates"].map(
               (heading) => (
-                <th key={heading} scope="col" className="px-5 py-3 font-semibold">
+                <th key={heading} scope="col" className="px-5 py-2.5 font-medium">
                   {heading}
                 </th>
               ),
@@ -151,7 +151,7 @@ function ApplicationsTable({
               <td className="px-5 py-4 font-semibold text-foreground">
                 {application.companyName}
               </td>
-              <td className="whitespace-nowrap px-5 py-4 text-muted-foreground">
+              <td className="whitespace-nowrap px-5 py-4 font-mono text-[13px] tracking-tight text-muted-foreground">
                 {new Intl.DateTimeFormat(undefined, {
                   month: "short",
                   day: "numeric",
@@ -238,7 +238,7 @@ export function CandidateDashboardPage() {
                     setPage(1);
                   }}
                   placeholder="Search company or updates…"
-                  className="h-10 w-full rounded-lg border border-border bg-background px-3.5 text-sm outline-none transition placeholder:text-muted-foreground/70 focus:border-accent focus:ring-3 focus:ring-accent/15"
+                  className="h-10 w-full rounded-[4px] border border-border bg-surface px-3.5 text-sm outline-none transition placeholder:text-muted-foreground/70 focus:border-ring focus:ring-4 focus:ring-ring/18"
                 />
               </label>
               <Select

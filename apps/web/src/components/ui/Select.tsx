@@ -158,7 +158,7 @@ export function Select({
       aria-label={labelHidden ? label : undefined}
       onClick={() => setOpen((current) => !current)}
       onKeyDown={onTriggerKeyDown}
-      className={`flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-surface px-3.5 text-left shadow-[inset_0_1px_0_rgb(255_255_255_/_0.04)] outline-none transition hover:border-muted-foreground/35 focus-visible:border-accent focus-visible:ring-4 focus-visible:ring-accent/15 disabled:cursor-not-allowed disabled:opacity-55 ${heightClass} ${open ? "border-accent ring-4 ring-accent/15" : ""}`}
+      className={`flex w-full items-center justify-between gap-3 rounded-[4px] border border-border bg-surface px-3.5 text-left outline-none transition hover:border-muted-foreground/45 focus-visible:border-ring focus-visible:ring-4 focus-visible:ring-ring/18 disabled:cursor-not-allowed disabled:opacity-55 ${heightClass} ${open ? "border-ring ring-4 ring-ring/18" : ""}`}
     >
       <span className="min-w-0 flex-1 truncate">
         {selected ? (
@@ -182,7 +182,7 @@ export function Select({
         highlight >= 0 ? `${listboxId}-option-${highlight}` : undefined
       }
       onKeyDown={onListKeyDown}
-      className="absolute z-50 mt-1.5 max-h-64 w-full overflow-auto rounded-xl border border-border bg-surface-elevated p-1.5 shadow-panel animate-rise"
+      className="absolute z-50 mt-1.5 max-h-64 w-full overflow-auto rounded-[5px] border border-border bg-surface-elevated p-1.5 shadow-panel animate-rise"
     >
       {options.length === 0 ? (
         <li className="px-3 py-2.5 text-sm text-muted-foreground">No options</li>

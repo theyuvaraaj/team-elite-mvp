@@ -79,7 +79,7 @@ export function ApplicationForm({
   }
 
   const fieldClass =
-    "mt-2 h-11 w-full rounded-xl border border-border bg-background px-3.5 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/15";
+    "mt-2 h-11 w-full rounded-[4px] border border-border bg-surface px-3.5 text-sm outline-none transition focus:border-ring focus:ring-4 focus:ring-ring/18";
   const labelClass = "text-sm font-medium text-foreground";
 
   return (

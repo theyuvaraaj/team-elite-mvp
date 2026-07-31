@@ -38,7 +38,7 @@ export function QuickAddApplication({
         >
           <header className="flex items-start justify-between gap-4 border-b border-border px-5 py-4 sm:px-6">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-accent">
+              <p className="eyebrow">
                 Application
               </p>
               <h2

@@ -6,7 +6,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 const fieldClass =
-  "h-11 w-full rounded-xl border border-border bg-surface px-3.5 text-[15px] text-foreground shadow-[inset_0_1px_0_rgb(255_255_255_/_0.04)] outline-none transition placeholder:text-muted-foreground/65 hover:border-muted-foreground/35 focus:border-accent focus:ring-4 focus:ring-accent/15";
+  "h-11 w-full rounded-[4px] border border-border bg-surface px-3.5 text-[15px] text-foreground outline-none transition placeholder:text-muted-foreground/65 hover:border-muted-foreground/45 focus:border-ring focus:ring-4 focus:ring-ring/18";
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   { label, hint, id, className = "", ...props },

@@ -205,7 +205,7 @@ export function AssignmentManagerPage() {
                       key={assignment.id}
                       className="flex items-center gap-4 px-5 py-4"
                     >
-                      <span className="grid size-10 place-items-center rounded-full bg-accent/10 text-xs font-bold text-accent">
+                      <span className="grid size-10 place-items-center rounded-[4px] bg-accent font-mono text-xs font-bold text-accent-foreground">
                         {assignment.employee.user.name
                           .split(" ")
                           .map((part) => part[0])
@@ -221,7 +221,7 @@ export function AssignmentManagerPage() {
                             → {assignment.candidate.user.name}
                           </span>
                         </p>
-                        <p className="mt-1 text-sm text-muted-foreground">
+                        <p className="mt-1 font-mono text-sm text-muted-foreground">
                           {assignment.employee.employeeCode} · Assigned{" "}
                           {new Intl.DateTimeFormat(undefined, {
                             dateStyle: "medium",
@@ -232,7 +232,7 @@ export function AssignmentManagerPage() {
                         type="button"
                         onClick={() => void remove(assignment.id)}
                         disabled={mutations.remove.isPending}
-                        className="text-sm font-semibold text-danger hover:underline disabled:opacity-50"
+                        className="font-mono text-[11px] uppercase tracking-[0.1em] text-danger hover:underline disabled:opacity-50"
                       >
                         Remove
                       </button>
