@@ -114,131 +114,146 @@ export function ProfilePage() {
       title="Edit profile"
       description="Update how you appear in Team Elite Portal."
     >
-      <Link
-        to={home}
-        className="mb-6 inline-flex font-mono text-[11px] uppercase tracking-[0.1em] text-brand hover:underline"
-      >
-        ← Back to dashboard
-      </Link>
+      <div className="mx-auto max-w-5xl">
+        <Link
+          to={home}
+          className="mb-6 inline-flex font-mono text-[11px] uppercase tracking-[0.1em] text-brand hover:underline"
+        >
+          ← Back to dashboard
+        </Link>
 
-      {loading ? (
-        <div className="h-64 animate-pulse rounded-2xl bg-muted" />
-      ) : error && !profile ? (
-        <div
-          role="alert"
-          className="rounded-2xl border border-danger/25 bg-danger/5 p-6 text-sm text-danger"
-        >
-          {error}
-        </div>
-      ) : (
-        <form
-          onSubmit={(event) => void handleSubmit(event)}
-          className="grid max-w-2xl gap-6 rounded-2xl border border-border bg-surface p-6 sm:p-7"
-        >
-          <div className="border-b border-border pb-5">
-            <p className="text-base font-semibold text-foreground">
-              {name || profile?.name}
-            </p>
-            <p className="eyebrow mt-1.5">
-              {profile?.role.toLowerCase()} · {profile?.email}
-            </p>
-            {profile?.employeeCode ? (
-              <p className="mt-1 font-mono text-[11px] tracking-tight text-muted-foreground">
-                Code {profile.employeeCode}
+        {loading ? (
+          <div className="h-64 animate-pulse rounded-[6px] bg-muted" />
+        ) : error && !profile ? (
+          <div
+            role="alert"
+            className="rounded-[6px] border border-danger/25 bg-danger/5 p-6 text-sm text-danger"
+          >
+            {error}
+          </div>
+        ) : (
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] lg:gap-8">
+            <aside className="h-max rounded-[6px] border border-border bg-surface p-6 lg:sticky lg:top-24">
+              <span
+                aria-hidden="true"
+                className="mb-4 grid size-11 place-items-center rounded-[5px] bg-accent font-mono text-sm font-semibold text-accent-foreground"
+              >
+                {(name || profile?.name || "").slice(0, 2).toUpperCase()}
+              </span>
+              <p className="text-base font-semibold text-foreground">
+                {name || profile?.name}
               </p>
-            ) : null}
-          </div>
+              <p className="eyebrow mt-1.5">{profile?.role.toLowerCase()}</p>
 
-          <Input
-            label="Display name"
-            name="name"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            required
-          />
+              <dl className="mt-5 grid gap-3 border-t border-border pt-5">
+                <div>
+                  <dt className="eyebrow">Login email</dt>
+                  <dd className="mt-1 break-all font-mono text-[12px] text-muted-foreground">
+                    {profile?.email}
+                  </dd>
+                </div>
+                {profile?.employeeCode ? (
+                  <div>
+                    <dt className="eyebrow">Employee code</dt>
+                    <dd className="mt-1 font-mono text-[12px] text-muted-foreground">
+                      {profile.employeeCode}
+                    </dd>
+                  </div>
+                ) : null}
+              </dl>
 
-          <label className="grid gap-2 text-sm font-medium">
-            Login email
-            <input
-              value={profile?.email ?? ""}
-              disabled
-              className="h-11 rounded-[4px] border border-border bg-muted px-3.5 font-mono text-sm text-muted-foreground"
-            />
-          </label>
+              <p className="mt-5 text-xs leading-5 text-muted-foreground">
+                Changes apply everywhere you appear across Team Elite Portal.
+              </p>
+            </aside>
 
-          {user?.role === "CANDIDATE" ? (
-            <>
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Input
-                  label="Contact email"
-                  name="contactEmail"
-                  type="email"
-                  value={contactEmail}
-                  onChange={(event) => setContactEmail(event.target.value)}
-                />
-                <Input
-                  label="Phone"
-                  name="phone"
-                  value={phone}
-                  onChange={(event) => setPhone(event.target.value)}
-                />
-              </div>
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Input
-                  label="Gender"
-                  name="gender"
-                  value={gender}
-                  onChange={(event) => setGender(event.target.value)}
-                />
-                <Input
-                  label="Primary role"
-                  name="primaryRole"
-                  value={primaryRole}
-                  onChange={(event) => setPrimaryRole(event.target.value)}
-                />
-              </div>
-              <Input
-                label="Experience"
-                name="experience"
-                value={experience}
-                onChange={(event) => setExperience(event.target.value)}
-              />
-              <label className="grid gap-2 text-sm font-medium">
-                Address
-                <textarea
-                  value={address}
-                  onChange={(event) => setAddress(event.target.value)}
-                  rows={3}
-                  className="rounded-[4px] border border-border bg-surface px-3.5 py-3 text-sm outline-none transition focus:border-ring focus:ring-4 focus:ring-ring/18"
-                />
-              </label>
-            </>
-          ) : null}
-
-          {error ? (
-            <p role="alert" className="text-sm text-danger">
-              {error}
-            </p>
-          ) : null}
-          {success ? (
-            <p role="status" className="text-sm text-success">
-              {success}
-            </p>
-          ) : null}
-
-          <div className="flex justify-end gap-3 border-t border-border pt-4">
-            <Link
-              to={home}
-              className="inline-flex h-11 items-center rounded-xl border border-border px-4 text-sm font-semibold hover:bg-muted"
+            <form
+              onSubmit={(event) => void handleSubmit(event)}
+              className="grid h-max gap-6 rounded-[6px] border border-border bg-surface p-6 sm:p-7"
             >
-              Cancel
-            </Link>
-            <Button type="submit" disabled={saving}>
-              {saving ? "Saving…" : "Save profile"}
-            </Button>
+              <Input
+                label="Display name"
+                name="name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                required
+              />
+
+              {user?.role === "CANDIDATE" ? (
+                <>
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <Input
+                      label="Contact email"
+                      name="contactEmail"
+                      type="email"
+                      value={contactEmail}
+                      onChange={(event) => setContactEmail(event.target.value)}
+                    />
+                    <Input
+                      label="Phone"
+                      name="phone"
+                      value={phone}
+                      onChange={(event) => setPhone(event.target.value)}
+                    />
+                  </div>
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <Input
+                      label="Gender"
+                      name="gender"
+                      value={gender}
+                      onChange={(event) => setGender(event.target.value)}
+                    />
+                    <Input
+                      label="Primary role"
+                      name="primaryRole"
+                      value={primaryRole}
+                      onChange={(event) => setPrimaryRole(event.target.value)}
+                    />
+                  </div>
+                  <Input
+                    label="Experience"
+                    name="experience"
+                    value={experience}
+                    onChange={(event) => setExperience(event.target.value)}
+                  />
+                  <label className="grid gap-2 text-sm font-medium">
+                    Address
+                    <textarea
+                      value={address}
+                      onChange={(event) => setAddress(event.target.value)}
+                      rows={3}
+                      className="rounded-[4px] border border-border bg-surface px-3.5 py-3 text-sm outline-none transition focus:border-ring focus:ring-4 focus:ring-ring/18"
+                    />
+                  </label>
+                </>
+              ) : null}
+
+              {error ? (
+                <p role="alert" className="text-sm text-danger">
+                  {error}
+                </p>
+              ) : null}
+              {success ? (
+                <p role="status" className="text-sm text-success">
+                  {success}
+                </p>
+              ) : null}
+
+              <div className="flex justify-end gap-3 border-t border-border pt-4">
+                <Link
+                  to={home}
+                  className="inline-flex h-11 items-center rounded-[4px] border border-border px-4 text-sm font-semibold hover:bg-muted"
+                >
+                  Cancel
+                </Link>
+                <Button type="submit" disabled={saving}>
+                  {saving ? "Saving…" : "Save profile"}
+                </Button>
+              </div>
+            </form>
           </div>
-        </form>
-      )}
+        )}
+      </div>
     </AppShell>
   );
 }
