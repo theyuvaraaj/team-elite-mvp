@@ -14,15 +14,15 @@ export function AuthLayout({
 }) {
   return (
     <main className="relative grid min-h-screen overflow-hidden lg:grid-cols-[1.05fr_0.95fr]">
-      <aside className="relative hidden flex-col justify-between overflow-hidden bg-[#17130d] px-10 py-11 text-[#ece2cd] lg:flex xl:px-14">
+      <aside className="relative hidden flex-col justify-between overflow-hidden bg-[#17130d] py-11 pl-10 pr-12 text-[#ece2cd] lg:flex xl:pl-16 xl:pr-16">
         <div className="auth-mesh absolute inset-0 text-[#ece2cd] opacity-70" />
         <div className="absolute inset-x-0 top-0 h-[3px] bg-[#e8623f]" />
 
-        <div className="relative animate-rise">
+        <div className="relative ml-auto w-full max-w-md animate-rise">
           <BrandLogo to={null} surface="on-dark" />
         </div>
 
-        <div className="relative max-w-md animate-rise-delay">
+        <div className="relative ml-auto w-full max-w-md animate-rise-delay">
           <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#e8623f]">
             The record, kept straight
           </p>
@@ -54,12 +54,12 @@ export function AuthLayout({
           </dl>
         </div>
 
-        <p className="relative font-mono text-[10.5px] uppercase tracking-[0.16em] text-[#ece2cd]/45">
+        <p className="relative ml-auto w-full max-w-md font-mono text-[10.5px] uppercase tracking-[0.16em] text-[#ece2cd]/45">
           Secure access · Team Elite network
         </p>
       </aside>
 
-      <section className="ledger-paper relative flex items-center justify-center bg-background px-5 py-12 sm:px-8">
+      <section className="ledger-paper relative flex items-center justify-center bg-background px-5 py-12 sm:px-8 lg:justify-start lg:pl-14 xl:pl-24">
         <div className="relative w-full max-w-[420px] animate-rise">
           <div className="mb-8 lg:hidden">
             <BrandLogo to={null} surface="on-light" />

@@ -167,7 +167,9 @@
     box-shadow: 0 1px 0 rgb(33 29 22 / 3%);
     transition:
       border-color 160ms ease,
-      background 160ms ease;
+      background 160ms ease,
+      box-shadow 160ms ease,
+      transform 160ms ease;
   }
 
   .stat-card::before {
@@ -177,11 +179,29 @@
     height: 2px;
     background: var(--foreground);
     opacity: 0.85;
+    transition: background 160ms ease, height 160ms ease;
   }
 
   .stat-card:hover {
-    border-color: color-mix(in srgb, var(--foreground) 32%, var(--border));
+    border-color: color-mix(in srgb, var(--foreground) 55%, var(--border));
     background: var(--surface-elevated);
+    box-shadow: var(--shadow-panel);
+    transform: translateY(-2px);
+  }
+
+  .stat-card:hover::before {
+    height: 3px;
+    background: var(--brand);
+  }
+
+  /* Ledger row hover — a clear paper highlight + red entry tick */
+  .data-table-wrap tbody tr {
+    transition: background 130ms ease, box-shadow 130ms ease;
+  }
+
+  .data-table-wrap tbody tr:hover {
+    background: color-mix(in srgb, var(--foreground) 6%, transparent);
+    box-shadow: inset 2px 0 0 var(--brand);
   }
 
   .data-table-wrap {
