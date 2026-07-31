@@ -133,7 +133,7 @@ export function ProfilePage() {
           </div>
         ) : (
           <div className="grid gap-6 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] lg:gap-8">
-            <aside className="h-max rounded-[6px] border border-border bg-surface p-6 lg:sticky lg:top-24">
+            <aside className="flex flex-col rounded-[6px] border border-border bg-surface p-6">
               <span
                 aria-hidden="true"
                 className="mb-4 grid size-11 place-items-center rounded-[5px] bg-accent font-mono text-sm font-semibold text-accent-foreground"
@@ -162,7 +162,7 @@ export function ProfilePage() {
                 ) : null}
               </dl>
 
-              <p className="mt-5 text-xs leading-5 text-muted-foreground">
+              <p className="mt-auto pt-6 text-xs leading-5 text-muted-foreground">
                 Changes apply everywhere you appear across Team Elite Portal.
               </p>
             </aside>
