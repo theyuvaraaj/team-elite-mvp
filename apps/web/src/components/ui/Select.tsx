@@ -182,7 +182,7 @@ export function Select({
         highlight >= 0 ? `${listboxId}-option-${highlight}` : undefined
       }
       onKeyDown={onListKeyDown}
-      className="absolute z-50 mt-1.5 max-h-64 w-full overflow-auto rounded-[5px] border border-border bg-surface-elevated p-1.5 shadow-panel animate-rise"
+      className="absolute z-50 mt-1.5 max-h-64 w-max min-w-full max-w-[min(24rem,90vw)] overflow-y-auto overflow-x-hidden rounded-[5px] border border-border bg-surface-elevated p-1.5 shadow-panel animate-rise"
     >
       {options.length === 0 ? (
         <li className="px-3 py-2.5 text-sm text-muted-foreground">No options</li>
@@ -215,10 +215,12 @@ export function Select({
                 if (!option.disabled) selectValue(option.value);
               }}
             >
-              <span className="truncate text-sm font-medium">{option.label}</span>
+              <span className="whitespace-nowrap text-sm font-medium">
+                {option.label}
+              </span>
               {option.description ? (
                 <span
-                  className={`mt-0.5 truncate text-xs ${
+                  className={`mt-0.5 whitespace-nowrap text-xs ${
                     isActive && !option.disabled
                       ? "text-accent-foreground/75"
                       : "text-muted-foreground"
