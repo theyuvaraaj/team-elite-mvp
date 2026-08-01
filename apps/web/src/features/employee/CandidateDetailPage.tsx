@@ -424,7 +424,7 @@ export function CandidateDetailPage() {
     >
       <Link
         to="/employee"
-        className="mb-6 inline-flex text-sm font-semibold text-accent hover:underline"
+        className="mb-6 inline-flex font-mono text-[11px] uppercase tracking-[0.1em] text-brand hover:underline"
       >
         ← Back to my candidates
       </Link>

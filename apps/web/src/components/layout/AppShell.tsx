@@ -72,7 +72,7 @@ export function AppShell({
 
             <Link
               to="/profile"
-              className="inline-flex h-10 items-center rounded-[4px] border border-border bg-surface px-3 text-xs font-semibold sm:hidden"
+              className="inline-flex h-10 items-center whitespace-nowrap rounded-[4px] border border-border bg-surface px-3 text-xs font-semibold sm:hidden"
             >
               Profile
             </Link>
@@ -80,7 +80,7 @@ export function AppShell({
             <Button
               type="button"
               variant="secondary"
-              className="h-10 px-3.5 text-xs"
+              className="h-10 whitespace-nowrap px-3.5 text-xs"
               onClick={() => void handleLogout()}
             >
               Sign out

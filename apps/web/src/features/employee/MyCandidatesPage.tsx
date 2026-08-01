@@ -20,7 +20,10 @@ function StatsCards({
   ];
 
   return (
-    <section className="grid gap-4 sm:grid-cols-2" aria-label="Employee statistics">
+    <section
+      className="grid max-w-2xl gap-4 sm:grid-cols-2"
+      aria-label="Employee statistics"
+    >
       {cards.map((card) => (
         <article key={card.label} className="stat-card p-5">
           <p className="eyebrow">
@@ -33,7 +36,9 @@ function StatsCards({
               {card.value ?? 0}
             </p>
           )}
-          <p className="mt-2 text-xs text-muted-foreground">{card.note}</p>
+          <p className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.1em] text-muted-foreground">
+            {card.note}
+          </p>
         </article>
       ))}
     </section>
