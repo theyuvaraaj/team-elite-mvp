@@ -416,17 +416,24 @@ export async function parseResumeFile(file: UploadedFile): Promise<string> {
   const e = ext(file.filename);
   let text = "";
 
-  if (type === "application/pdf" || e === "pdf") {
-    const pdfParse = (await import("pdf-parse")).default;
-    const result = await pdfParse(file.buffer);
-    text = result.text;
-  } else if (type === DOCX || e === "docx") {
-    const result = await mammoth.extractRawText({ buffer: file.buffer });
-    text = result.value;
-  } else if (type.startsWith("text/") || e === "txt") {
-    text = file.buffer.toString("utf8");
-  } else {
-    throw new AppError(400, "UNSUPPORTED_FILE", "Upload a PDF, DOCX, or text resume");
+  try {
+    if (type === "application/pdf" || e === "pdf") {
+      // pdf-parse v2 is class-based: `new PDFParse({ data }).getText()`.
+      const { PDFParse } = await import("pdf-parse");
+      const parser = new PDFParse({ data: new Uint8Array(file.buffer) });
+      const result = await parser.getText();
+      text = result.text;
+    } else if (type === DOCX || e === "docx") {
+      const result = await mammoth.extractRawText({ buffer: file.buffer });
+      text = result.value;
+    } else if (type.startsWith("text/") || e === "txt") {
+      text = file.buffer.toString("utf8");
+    } else {
+      throw new AppError(400, "UNSUPPORTED_FILE", "Upload a PDF, DOCX, or text resume");
+    }
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new AppError(400, "RESUME_PARSE_FAILED", "Could not read that file; try exporting it again");
   }
 
   text = text.replace(/\r\n/g, "\n").trim();
@@ -435,6 +442,29 @@ export async function parseResumeFile(file: UploadedFile): Promise<string> {
   }
   return text;
 }
+```
+
+Also add a PDF fixture + test so the PDF branch is covered. Generate the fixture from `apps/api`:
+```bash
+node --input-type=module -e "
+import PDFDocument from 'pdfkit';
+import { createWriteStream } from 'node:fs';
+const doc = new PDFDocument();
+doc.pipe(createWriteStream('src/modules/resumes/__fixtures__/sample.pdf'));
+doc.fontSize(12).text('Jane Doe');
+doc.text('jane@example.com');
+doc.text('Skills: TypeScript Kubernetes');
+doc.end();
+"
+```
+Add to `parse.test.ts`:
+```ts
+  it("extracts text from a PDF", async () => {
+    const buffer = readFileSync(join(here, "__fixtures__/sample.pdf"));
+    const text = await parseResumeFile({ buffer, filename: "sample.pdf", mimetype: "application/pdf" });
+    expect(text).toContain("Jane Doe");
+    expect(text).toContain("TypeScript");
+  });
 ```
 
 - [ ] **Step 5: Run tests to verify they pass**
