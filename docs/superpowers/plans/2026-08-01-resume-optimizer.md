@@ -251,6 +251,7 @@ const STOPWORDS = new Set([
   "we","you","our","your","must","need","should","will","have","has","this","that",
   "at","by","from","into","who","can","must","also","who","their","they","it","its",
   "experience","years","team","work","working","role","job","strong","good","plus",
+  "know","knows","knowledge","using","used","use","ability","able","including","etc",
 ]);
 
 export function extractKeywords(jobDescription: string): string[] {
