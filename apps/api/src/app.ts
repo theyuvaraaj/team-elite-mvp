@@ -1,5 +1,6 @@
 import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
+import multipart from "@fastify/multipart";
 import rateLimit from "@fastify/rate-limit";
 import { Prisma } from "@prisma/client";
 import Fastify from "fastify";
@@ -17,6 +18,9 @@ export async function buildApp() {
   const app = Fastify({ logger: true });
 
   await app.register(cookie);
+  await app.register(multipart, {
+    limits: { fileSize: config.RESUME_MAX_UPLOAD_MB * 1024 * 1024, files: 1 },
+  });
   await app.register(cors, {
     origin: config.WEB_ORIGIN,
     credentials: true,
