@@ -14,6 +14,13 @@ describe("parseResumeFile", () => {
     expect(text).toContain("TypeScript");
   });
 
+  it("extracts text from a PDF", async () => {
+    const buffer = readFileSync(join(here, "__fixtures__/sample.pdf"));
+    const text = await parseResumeFile({ buffer, filename: "sample.pdf", mimetype: "application/pdf" });
+    expect(text).toContain("Jane Doe");
+    expect(text).toContain("TypeScript");
+  });
+
   it("accepts plain text", async () => {
     const text = await parseResumeFile({ buffer: Buffer.from("Hello World resume"), filename: "r.txt", mimetype: "text/plain" });
     expect(text).toContain("Hello World");
