@@ -32,3 +32,8 @@ export function postLoginPath(role: UserRole, from?: string): string {
   }
   return roleHomePath(role);
 }
+
+export function candidateDetailPath(role: UserRole, candidateId: string): string {
+  const base = role === "ADMIN" ? "/admin/candidates" : "/employee/candidates";
+  return `${base}/${candidateId}`;
+}

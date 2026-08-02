@@ -44,6 +44,7 @@ function AdminRoutes() {
       <Route path="assignments" element={<AssignmentManagerPage />} />
       <Route path="applications" element={<AllApplicationsPage />} />
       <Route path="audit" element={<AuditLogPage />} />
+      <Route path="candidates/:candidateId" element={<CandidateDetailPage />} />
       <Route path="*" element={<Navigate to="/admin" replace />} />
     </Routes>
   );

@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { AppShell } from "../../components/layout/AppShell";
 import { ApiError } from "../../lib/api";
 import { AdminNav } from "./AdminNav";
@@ -210,7 +211,7 @@ export function AdminUsersPage() {
               <tbody>
                 {type === "candidates" ? candidates.map((record) => (
                   <tr key={record.id} className="border-b border-border/70 last:border-0">
-                    <td className="px-5 py-4 font-semibold">{record.user.name}</td><td className="px-5 py-4 text-muted-foreground">{record.user.email}</td><td className="px-5 py-4 text-muted-foreground">{record.primaryRole || "—"}</td>
+                    <td className="px-5 py-4 font-semibold"><Link to={`/admin/candidates/${record.id}`} className="text-foreground hover:text-brand hover:underline">{record.user.name}</Link></td><td className="px-5 py-4 text-muted-foreground">{record.user.email}</td><td className="px-5 py-4 text-muted-foreground">{record.primaryRole || "—"}</td>
                     <td className="px-5 py-4"><span className={`inline-flex rounded-[3px] border px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.08em] ${record.user.isActive ? "border-success/40 text-success" : "border-border text-muted-foreground"}`}>{record.user.isActive ? "Active" : "Disabled"}</span></td>
                     <td className="whitespace-nowrap px-5 py-4"><button onClick={() => setEditor({ type: "candidate", record })} className="font-mono text-[11px] uppercase tracking-[0.1em] text-brand hover:underline">Edit</button><button onClick={() => void resetPassword(record, "candidate")} className="ml-3 font-mono text-[11px] uppercase tracking-[0.1em] text-brand hover:underline">Reset password / Resend invite</button>{record.user.isActive ? <button onClick={() => setDisableTarget({ type: "candidate", id: record.id, name: record.user.name })} className="ml-3 font-mono text-[11px] uppercase tracking-[0.1em] text-danger hover:underline">Disable</button> : null}</td>
                   </tr>

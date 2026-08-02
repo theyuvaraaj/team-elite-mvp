@@ -1,10 +1,13 @@
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useParams } from "react-router-dom";
+import { roleHomePath } from "../../app/paths";
 import { AppShell } from "../../components/layout/AppShell";
 import { Select } from "../../components/ui/Select";
 import { ApiError } from "../../lib/api";
+import { useAuth } from "../auth/useAuth";
 import { QuickAddApplication } from "./QuickAddApplication";
+import { ResumeOptimizer } from "./ResumeOptimizer";
 import {
   useApplicationMutations,
   useEmployeeApplications,
@@ -349,6 +352,8 @@ function ApplicationsCardView({
 
 export function CandidateDetailPage() {
   const { candidateId } = useParams();
+  const { user } = useAuth();
+  const backTo = user ? roleHomePath(user.role) : "/";
   const candidateQuery = useEmployeeCandidate(candidateId);
   const applicationsQuery = useEmployeeApplications();
   const mutations = useApplicationMutations(candidateId ?? "");
@@ -423,10 +428,10 @@ export function CandidateDetailPage() {
       description="Review candidate details and manage application activity."
     >
       <Link
-        to="/employee"
+        to={backTo}
         className="mb-6 inline-flex font-mono text-[11px] uppercase tracking-[0.1em] text-brand hover:underline"
       >
-        ← Back to my candidates
+        ← Back
       </Link>
 
       {candidateQuery.isPending ? (
@@ -434,7 +439,7 @@ export function CandidateDetailPage() {
       ) : candidateQuery.isError || !candidate ? (
         <div role="alert" className="rounded-xl border border-danger/25 bg-danger/5 p-6">
           <p className="font-semibold text-danger">Candidate details could not be loaded.</p>
-          <Link to="/employee" className="mt-3 inline-block text-sm font-semibold text-accent">
+          <Link to={backTo} className="mt-3 inline-block text-sm font-semibold text-accent">
             Return to candidates
           </Link>
         </div>
@@ -644,6 +649,12 @@ export function CandidateDetailPage() {
               )}
             </div>
           </section>
+
+          {candidateId ? (
+            <div className="mt-12 border-t border-border pt-10">
+              <ResumeOptimizer candidateId={candidateId} />
+            </div>
+          ) : null}
         </div>
       )}
 
