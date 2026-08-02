@@ -1312,9 +1312,12 @@ export function useOptimizeResume(candidateId: string) {
   return useMutation({
     mutationFn: (input: { file: File; jobDescription: string; companyName: string }) => {
       const form = new FormData();
-      form.append("file", input.file);
+      // Text fields MUST be appended before the file: the API reads them from
+      // `request.file().fields`, which only sees parts that precede the file
+      // in the multipart stream.
       form.append("jobDescription", input.jobDescription);
       form.append("companyName", input.companyName);
+      form.append("file", input.file);
       return api<OptimizeResult>(`/api/candidates/${candidateId}/resumes/optimize`, {
         method: "POST",
         body: form,
