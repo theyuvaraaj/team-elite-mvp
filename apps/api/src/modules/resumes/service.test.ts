@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { expect, it, vi } from "vitest";
 import type { ResumeOptimizer } from "./optimizer.js";
+import { scoreResume } from "./scorer.js";
 
 vi.mock("./repository.js", () => ({
   createOptimizedResume: vi.fn(async (d: { atsScore: number }) => ({ id: "res-1", atsScore: d.atsScore })),
@@ -44,4 +45,27 @@ it("refines up to the pass limit and keeps the highest score", async () => {
   });
   expect(optimizer.optimize).toHaveBeenCalledTimes(3); // config default RESUME_MAX_REFINE_PASSES
   expect(result.atsScore).toBeLessThan(90);
+});
+
+it("keeps the highest-scoring pass even when a later pass scores lower", async () => {
+  const jobDesc = "Need TypeScript, Kubernetes, GraphQL, PostgreSQL, CI/CD, Docker, AWS, React.";
+  // Three drafts scored by the REAL scorer; the middle pass is the strict maximum
+  // and all three are below the 90 target (so no early break).
+  const drafts = [
+    "Jane\nSummary\nEngineer.\nExperience\n- TypeScript.\nEducation\nBS",
+    "Jane Doe\njane@example.com\nSummary\nEngineer.\nSkills\nTypeScript, Kubernetes, GraphQL, PostgreSQL\nExperience\n- TypeScript on Kubernetes with GraphQL and PostgreSQL.\nEducation\nBS",
+    "Jane\nExperience\n- Did work.",
+  ];
+  const scores = drafts.map((d) => scoreResume(d, jobDesc).score);
+  expect(Math.max(...scores)).toBe(scores[1]); // middle is the max
+  expect(Math.max(...scores)).toBeLessThan(90); // all below target -> full 3 passes
+
+  let call = 0;
+  const optimizer: ResumeOptimizer = { optimize: vi.fn(async () => drafts[call++]) };
+  const result = await optimizeResume({
+    candidateId: "c1", createdById: "u1", file: baseFile,
+    jobDescription: jobDesc, companyName: "Acme", optimizer,
+  });
+  expect(optimizer.optimize).toHaveBeenCalledTimes(3);
+  expect(result.atsScore).toBe(scores[1]); // highest (pass 2), NOT the last pass's score
 });
