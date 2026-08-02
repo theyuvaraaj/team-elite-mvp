@@ -12,8 +12,22 @@ const STOPWORDS = new Set([
   "the","a","an","and","or","to","of","in","on","for","with","is","are","be","as",
   "we","you","our","your","must","need","should","will","have","has","this","that",
   "at","by","from","into","who","can","must","also","who","their","they","it","its",
-  "experience","years","team","work","working","role","job","strong","good","plus",
+  "experience","years","team","teams","work","working","role","job","strong","good","plus",
   "know","knows","knowledge","using","used","use","ability","able","including","etc",
+  // Generic JD prose / culture filler a real resume rarely echoes verbatim
+  "about","want","wants","part","dynamic","environment","within","forefront","enabling",
+  "enable","outside","looking","passionate","high","quality","description","join","joining",
+  "seeking","seek","ideal","candidate","candidates","responsibilities","responsibility",
+  "requirements","requirement","required","require","preferred","prefer","nice","great",
+  "excellent","opportunity","company","companies","well","more","most","across","over",
+  "help","some","any","all","new","other","senior","junior","mid","lead","principal",
+  "engineer","developer","hire","hiring","position","opening","people","person","world",
+  "class","best","top","leading","cutting","edge","proven","track","record","fast","paced",
+  "highly","closely","directly","strongly","currently","previously","ideally","who","what",
+  "where","when","why","how","you'll","we're","join","build","building","develop","developing",
+  "design","designing","ensure","drive","deliver","delivering","manage","managing","support",
+  "supporting","collaborate","collaborating","mentor","mentoring","own","create","creating",
+  "maintain","improve","grow","ship","shipping","looking","day","daily","every","both",
 ]);
 
 export function extractKeywords(jobDescription: string): string[] {
