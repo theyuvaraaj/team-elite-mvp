@@ -80,6 +80,6 @@ export class StubOptimizer implements ResumeOptimizer {
 }
 
 export function getOptimizer(): ResumeOptimizer {
-  if (config.NODE_ENV === "test" || !config.GEMINI_API_KEY) return new StubOptimizer();
+  if (config.NODE_ENV !== "production" && !config.GEMINI_API_KEY) return new StubOptimizer();
   return new GeminiOptimizer();
 }
