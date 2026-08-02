@@ -40,17 +40,41 @@ export class GeminiOptimizer implements ResumeOptimizer {
     if (!config.GEMINI_API_KEY) {
       throw new AppError(503, "OPTIMIZER_UNCONFIGURED", "Resume optimization is not configured (missing GEMINI_API_KEY)");
     }
+    const timeoutMs = config.RESUME_REQUEST_TIMEOUT_MS;
     const client = new GoogleGenerativeAI(config.GEMINI_API_KEY);
-    const model = client.getGenerativeModel({ model: config.RESUME_OPTIMIZE_MODEL });
+    // SDK-level timeout aborts the underlying request.
+    const model = client.getGenerativeModel(
+      { model: config.RESUME_OPTIMIZE_MODEL },
+      { timeout: timeoutMs },
+    );
     try {
-      const result = await model.generateContent(buildPrompt(input));
+      // Backstop: never let a stalled call hang the request forever, even if
+      // the SDK timeout fails to fire.
+      let guard: ReturnType<typeof setTimeout> | undefined;
+      const deadline = new Promise<never>((_, reject) => {
+        guard = setTimeout(
+          () => reject(new AppError(504, "OPTIMIZER_TIMEOUT", "The AI service timed out. Please try again.")),
+          timeoutMs + 2000,
+        );
+      });
+      let result;
+      try {
+        result = await Promise.race([model.generateContent(buildPrompt(input)), deadline]);
+      } finally {
+        if (guard) clearTimeout(guard);
+      }
       const text = result.response.text().trim();
       if (!text) throw new AppError(502, "OPTIMIZER_EMPTY", "The optimizer returned no content");
       return text;
     } catch (error) {
       if (error instanceof AppError) throw error;
       const status = (error as { status?: number })?.status;
+      const name = (error as { name?: string })?.name ?? "";
+      const message = String((error as { message?: string })?.message ?? "");
       if (status === 429) throw new AppError(429, "OPTIMIZER_BUSY", "AI service is busy, try again shortly");
+      if (name === "AbortError" || /timeout|timed out|deadline|aborted/i.test(message)) {
+        throw new AppError(504, "OPTIMIZER_TIMEOUT", "The AI service timed out. Please try again.");
+      }
       throw new AppError(502, "OPTIMIZER_FAILED", "Resume optimization failed");
     }
   }

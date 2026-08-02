@@ -37,6 +37,9 @@ export function useOptimizeResume(candidateId: string) {
       return api<OptimizeResult>(`/api/candidates/${candidateId}/resumes/optimize`, {
         method: "POST",
         body: form,
+        // Backstop so the UI never spins forever; the server bounds each
+        // optimize with its own per-call timeout well under this.
+        signal: AbortSignal.timeout(160_000),
       });
     },
     onSuccess: () =>
