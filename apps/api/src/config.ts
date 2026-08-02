@@ -20,6 +20,8 @@ const envSchema = z.object({
   RESUME_SCORE_TARGET: z.coerce.number().int().min(0).max(100).default(90),
   RESUME_MAX_UPLOAD_MB: z.coerce.number().int().positive().default(5),
   RESUME_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(55000),
+  TECTONIC_BIN: z.string().default("tectonic"),
+  RESUME_LATEX_TIMEOUT_MS: z.coerce.number().int().positive().default(45000),
 });
 
 export const config = envSchema.parse(process.env);

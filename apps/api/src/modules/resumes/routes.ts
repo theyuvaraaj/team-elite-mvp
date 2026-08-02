@@ -6,6 +6,7 @@ import { requireAuth } from "../../middleware/requireAuth.js";
 import { requireRole } from "../../middleware/requireRole.js";
 import { assertEmployeeAssigned } from "../assignments/service.js";
 import { parseBody } from "../auth/schemas.js";
+import { renderResumeLatexPdf } from "./latex.js";
 import { renderResumeDocx, renderResumePdf } from "./render.js";
 import { downloadQuerySchema, optimizeFieldsSchema } from "./schemas.js";
 import * as service from "./service.js";
@@ -88,7 +89,15 @@ export async function resumeRoutes(app: FastifyInstance): Promise<void> {
         .header("Content-Disposition", `attachment; filename="resume-${safe}.docx"`)
         .send(buf);
     }
-    const buf = await renderResumePdf(resume.contentMarkdown);
+    // Prefer a real LaTeX-compiled PDF (authentic resume look); fall back to
+    // the lightweight pdfkit renderer if LaTeX/Tectonic is unavailable or errors.
+    let buf: Buffer;
+    try {
+      buf = await renderResumeLatexPdf(resume.contentMarkdown);
+    } catch (error) {
+      request.log.warn({ err: error }, "LaTeX render failed; falling back to pdfkit");
+      buf = await renderResumePdf(resume.contentMarkdown);
+    }
     return reply
       .header("Content-Type", "application/pdf")
       .header("Content-Disposition", `attachment; filename="resume-${safe}.pdf"`)

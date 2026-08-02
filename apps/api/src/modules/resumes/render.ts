@@ -1,7 +1,7 @@
 import { Document, HeadingLevel, Packer, Paragraph, TextRun } from "docx";
 import PDFDocument from "pdfkit";
 
-interface Line { kind: "name" | "heading" | "bullet" | "text"; text: string }
+export interface Line { kind: "name" | "heading" | "bullet" | "text"; text: string }
 export interface InlineSegment { text: string; bold: boolean }
 
 // Strip markdown noise that should never render literally (links, code ticks,
@@ -37,7 +37,7 @@ export function parseInline(text: string): InlineSegment[] {
 
 // Parse canonical markdown into a flat, ATS-friendly line list. The first
 // non-empty line is always the name (even if it starts with '#').
-function parse(markdown: string): Line[] {
+export function parseResumeLines(markdown: string): Line[] {
   const raw = markdown.replace(/\r\n/g, "\n").split("\n");
   const lines: Line[] = [];
   let started = false;
@@ -65,7 +65,7 @@ function docxRuns(text: string, base?: { size?: number; bold?: boolean }): TextR
 }
 
 export async function renderResumeDocx(markdown: string): Promise<Buffer> {
-  const children = parse(markdown).map((l) => {
+  const children = parseResumeLines(markdown).map((l) => {
     if (l.kind === "name") {
       return new Paragraph({ children: docxRuns(l.text, { bold: true, size: 32 }) });
     }
@@ -102,7 +102,7 @@ export function renderResumePdf(markdown: string): Promise<Buffer> {
       });
     }
 
-    for (const l of parse(markdown)) {
+    for (const l of parseResumeLines(markdown)) {
       if (l.kind === "name") {
         writeSegments(parseInline(l.text), 18, { forceBold: true });
       } else if (l.kind === "heading") {
