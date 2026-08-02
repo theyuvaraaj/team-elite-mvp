@@ -12,6 +12,7 @@ import { auditRoutes } from "./modules/audit/routes.js";
 import { authRoutes } from "./modules/auth/routes.js";
 import { candidateRoutes } from "./modules/candidates/routes.js";
 import { employeeRoutes } from "./modules/employees/routes.js";
+import { resumeRoutes } from "./modules/resumes/routes.js";
 import { statsRoutes } from "./modules/stats/routes.js";
 
 export async function buildApp() {
@@ -76,6 +77,7 @@ export async function buildApp() {
   await app.register(assignmentRoutes, { prefix: "/api/assignments" });
   await app.register(auditRoutes, { prefix: "/api/audit-logs" });
   await app.register(candidateRoutes, { prefix: "/api/candidates" });
+  await app.register(resumeRoutes, { prefix: "/api/candidates" });
   await app.register(employeeRoutes, { prefix: "/api/employees" });
   await app.register(statsRoutes, { prefix: "/api/stats" });
   app.get("/api/health", async () => ({ ok: true }));
