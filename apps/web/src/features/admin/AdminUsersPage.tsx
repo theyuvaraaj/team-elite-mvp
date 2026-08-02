@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { AppShell } from "../../components/layout/AppShell";
 import { ApiError } from "../../lib/api";
@@ -85,9 +86,10 @@ function UserEditor({
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-foreground/40 p-4 backdrop-blur-sm">
-      <section role="dialog" aria-modal="true" aria-labelledby="user-editor-title" className="my-8 w-full max-w-2xl rounded-2xl border border-border bg-surface p-6 shadow-2xl">
+  return createPortal(
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-foreground/40 p-4 backdrop-blur-sm">
+      <div className="flex min-h-full items-center justify-center">
+        <section role="dialog" aria-modal="true" aria-labelledby="user-editor-title" className="my-8 w-full max-w-2xl rounded-2xl border border-border bg-surface p-6 shadow-2xl">
         <h2 id="user-editor-title" className="text-xl font-semibold">
           {editor.record ? "Edit" : "Invite"} {editor.type}
         </h2>
@@ -121,8 +123,10 @@ function UserEditor({
             </button>
           </div>
         </form>
-      </section>
-    </div>
+        </section>
+      </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -252,14 +256,15 @@ export function AdminUsersPage() {
           }}
         />
       ) : null}
-      {disableTarget ? (
+      {disableTarget ? createPortal(
         <div className="fixed inset-0 z-50 grid place-items-center bg-foreground/40 p-4 backdrop-blur-sm">
           <section role="alertdialog" aria-modal="true" aria-labelledby="disable-title" className="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl">
             <h2 id="disable-title" className="text-xl font-semibold">Disable user?</h2>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">{disableTarget.name} will no longer be able to sign in. This API does not currently support re-enabling accounts.</p>
             <div className="mt-6 flex justify-end gap-3"><button onClick={() => setDisableTarget(null)} className="h-10 rounded-lg border border-border px-4 text-sm font-semibold hover:bg-muted">Cancel</button><button onClick={() => void disableUser()} disabled={mutations.disableCandidate.isPending || mutations.disableEmployee.isPending} className="h-10 rounded-lg bg-danger px-4 text-sm font-semibold text-white disabled:opacity-50">Disable</button></div>
           </section>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </AppShell>
   );

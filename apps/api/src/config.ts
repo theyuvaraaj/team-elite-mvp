@@ -15,7 +15,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3001),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   GEMINI_API_KEY: z.string().optional().default(""),
-  RESUME_OPTIMIZE_MODEL: z.string().default("gemini-2.5-flash"),
+  RESUME_OPTIMIZE_MODEL: z.string().default("gemini-flash-latest"),
   RESUME_MAX_REFINE_PASSES: z.coerce.number().int().positive().default(3),
   RESUME_SCORE_TARGET: z.coerce.number().int().min(0).max(100).default(90),
   RESUME_MAX_UPLOAD_MB: z.coerce.number().int().positive().default(5),

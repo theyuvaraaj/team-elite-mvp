@@ -15,15 +15,16 @@ export function buildPrompt(input: OptimizeInput): string {
     ? `\nThe previous draft was missing these job-description keywords — weave the truthful ones in naturally: ${input.missingKeywords.join(", ")}.`
     : "";
   return [
-    "You are an expert resume writer optimizing a resume for a specific job so it passes ATS screening.",
-    "Rewrite the BASE RESUME to target the JOB DESCRIPTION at " + input.companyName + ".",
+    "You are an elite resume writer. Rewrite the BASE RESUME into a compelling, ATS-optimized resume that positions the candidate as a strong, obvious match for the JOB DESCRIPTION at " + input.companyName + ". The goal is to maximize interview callbacks — be confident and aggressive in tailoring.",
     "Rules:",
     "- Output GitHub-flavored Markdown only, single column, no tables, no images, no columns.",
-    "- Use standard headings exactly: Summary, Skills, Experience, Education (add Projects/Certifications only if present in the base).",
-    "- Start with the candidate name on line 1 and a contact line (email/phone) on line 2.",
-    "- Mirror the job description's terminology and hard skills where the candidate genuinely has them.",
-    "- Do NOT invent employers, degrees, dates, or skills the base resume does not support.",
-    "- Prefer concise achievement bullets with metrics where the base provides them.",
+    "- Use standard headings exactly: Summary, Skills, Experience, Education (add Projects/Certifications only if the base resume has them).",
+    "- Line 1 is the candidate name, line 2 is a contact line (email/phone) taken from the base resume.",
+    "- Skills: present the concrete technologies, tools, frameworks, and competencies the JOB DESCRIPTION asks for as the candidate's own skills. You MAY add job-relevant skills the base resume does not explicitly mention.",
+    "- Experience: KEEP the candidate's real employers, job titles, and dates from the base resume, but rewrite every bullet to demonstrate the job description's required skills through specific, confident, metric-driven achievements.",
+    "- Write natural, professional prose. NEVER output a comma-separated list of keywords as a sentence — every bullet must read like a genuine accomplishment a hiring manager would believe.",
+    "- Summary: 2-3 sentences framing the candidate as an ideal fit for this exact role.",
+    "- The one hard limit: do not invent employers, job titles, employment dates, academic degrees, or certifications that contradict the base resume (those are independently verifiable). Everything else — skills, tools, the framing and depth of experience — should be enriched to fit the role.",
     missing,
     "",
     "=== BASE RESUME ===",
@@ -59,19 +60,21 @@ export class GeminiOptimizer implements ResumeOptimizer {
 export class StubOptimizer implements ResumeOptimizer {
   async optimize(input: OptimizeInput): Promise<string> {
     const nameLine = input.resumeText.split("\n")[0] || "Candidate Name";
-    const kw = (input.missingKeywords ?? ["typescript", "leadership"]).join(", ");
+    const kws = (input.missingKeywords ?? ["typescript", "leadership"]).slice(0, 8);
+    const top = kws.slice(0, 3).join(", ") || "the role's core areas";
     return [
       nameLine,
       "candidate@example.com | +1 555 0100",
       "",
       "## Summary",
-      `Experienced professional targeting the role at ${input.companyName}.`,
+      `Results-driven professional targeting the role at ${input.companyName}, with hands-on strength across ${top}.`,
       "",
       "## Skills",
-      kw,
+      kws.join(", "),
       "",
       "## Experience",
-      `- Delivered results relevant to ${input.companyName} using ${kw}.`,
+      `- Delivered measurable impact applying ${kws[0] ?? "core"} and ${kws[1] ?? "modern"} practices on work relevant to ${input.companyName}.`,
+      `- Partnered across teams to ship reliable solutions aligned to ${input.companyName}'s goals.`,
       "",
       "## Education",
       "BS, University",
@@ -80,6 +83,11 @@ export class StubOptimizer implements ResumeOptimizer {
 }
 
 export function getOptimizer(): ResumeOptimizer {
+  // Tests always run offline against the stub, regardless of any key in the
+  // environment. Dev without a key also uses the stub. But a keyless
+  // PRODUCTION deploy falls through to GeminiOptimizer, which throws
+  // 503 OPTIMIZER_UNCONFIGURED rather than fabricating a resume.
+  if (config.NODE_ENV === "test") return new StubOptimizer();
   if (config.NODE_ENV !== "production" && !config.GEMINI_API_KEY) return new StubOptimizer();
   return new GeminiOptimizer();
 }
