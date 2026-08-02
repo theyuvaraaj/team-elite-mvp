@@ -53,6 +53,7 @@ export async function resumeRoutes(app: FastifyInstance): Promise<void> {
     const fields = parseBody(optimizeFieldsSchema, {
       jobDescription: (file.fields.jobDescription as { value?: string })?.value,
       companyName: (file.fields.companyName as { value?: string })?.value,
+      mode: (file.fields.mode as { value?: string })?.value,
     });
 
     const result = await service.optimizeResume({
@@ -61,6 +62,7 @@ export async function resumeRoutes(app: FastifyInstance): Promise<void> {
       file: { buffer, filename: file.filename, mimetype: file.mimetype },
       jobDescription: fields.jobDescription,
       companyName: fields.companyName,
+      mode: fields.mode,
     });
     return reply.status(201).send(result);
   });

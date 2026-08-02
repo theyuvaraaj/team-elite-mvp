@@ -12,6 +12,7 @@ export interface OptimizeParams {
   file: UploadedFile;
   jobDescription: string;
   companyName: string;
+  mode?: "rewrite" | "content";
   optimizer?: ResumeOptimizer;
 }
 
@@ -27,6 +28,7 @@ export async function optimizeResume(params: OptimizeParams) {
       resumeText,
       jobDescription: params.jobDescription,
       companyName: params.companyName,
+      mode: params.mode,
       missingKeywords,
     });
     const scored = scoreResume(markdown, params.jobDescription);

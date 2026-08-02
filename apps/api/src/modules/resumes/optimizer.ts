@@ -2,29 +2,51 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { config } from "../../config.js";
 import { AppError } from "../../lib/errors.js";
 
+export type OptimizeMode = "rewrite" | "content";
+
 export interface OptimizeInput {
   resumeText: string;
   jobDescription: string;
   companyName: string;
+  mode?: OptimizeMode;
   missingKeywords?: string[];
 }
 export interface ResumeOptimizer { optimize(input: OptimizeInput): Promise<string> }
 
+const FORMAT_RULES = [
+  "Formatting (strict — the output is rendered to PDF/DOCX by a simple parser):",
+  "- Output GitHub-flavored Markdown, single column. NO tables, NO images, NO multi-column layout, NO horizontal rules, NO code blocks or backticks.",
+  "- Line 1 is the candidate name; line 2 is a contact line (email/phone) from the base resume.",
+  "- Section titles use '## ' headings. Bullets use '- '. Use **bold** only for a company/role or a skill-group label, never for random words mid-sentence.",
+];
+
 export function buildPrompt(input: OptimizeInput): string {
   const missing = input.missingKeywords?.length
-    ? `\nThe previous draft was missing these job-description keywords — weave the truthful ones in naturally: ${input.missingKeywords.join(", ")}.`
+    ? `\nThe previous draft was still missing these job-description keywords — weave the truthful ones in naturally: ${input.missingKeywords.join(", ")}.`
     : "";
+  const strategy =
+    input.mode === "content"
+      ? [
+          "You are an expert resume editor. TAILOR the BASE RESUME to the JOB DESCRIPTION at " + input.companyName + " while PRESERVING the candidate's existing resume structure.",
+          "Rules:",
+          "- Keep the SAME sections, in the SAME order, with the SAME headings the base resume already uses. Do not add, remove, merge, or reorder sections.",
+          "- Only rewrite the wording of existing bullets and the summary to emphasize the skills and terminology the job description asks for.",
+          "- You may sharpen bullets and fold in job-relevant skills the candidate plausibly has, but keep the overall shape, length, and layout close to the original.",
+          "- Do not invent employers, job titles, employment dates, degrees, or certifications that contradict the base resume.",
+        ]
+      : [
+          "You are an elite resume writer. Rewrite the BASE RESUME into a compelling, ATS-optimized resume that positions the candidate as a strong, obvious match for the JOB DESCRIPTION at " + input.companyName + ". Be confident and aggressive in tailoring to maximize interview callbacks.",
+          "Rules:",
+          "- Use standard sections: Summary, Skills, Experience, Education (add Projects/Certifications only if the base resume has them).",
+          "- Skills: present the technologies, tools, and competencies the job description asks for as the candidate's own; you MAY add job-relevant skills the base resume does not explicitly mention.",
+          "- Experience: KEEP the candidate's real employers, titles, and dates, but rewrite every bullet into specific, confident, metric-driven achievements demonstrating the job's required skills.",
+          "- Summary: 2-3 sentences framing the candidate as an ideal fit for this exact role.",
+          "- Write natural, professional prose — never a comma-separated keyword dump as a sentence.",
+          "- Do not invent employers, job titles, employment dates, degrees, or certifications that contradict the base resume; everything else — skills, tools, framing and depth of experience — may be enriched.",
+        ];
   return [
-    "You are an elite resume writer. Rewrite the BASE RESUME into a compelling, ATS-optimized resume that positions the candidate as a strong, obvious match for the JOB DESCRIPTION at " + input.companyName + ". The goal is to maximize interview callbacks — be confident and aggressive in tailoring.",
-    "Rules:",
-    "- Output GitHub-flavored Markdown only, single column, no tables, no images, no columns.",
-    "- Use standard headings exactly: Summary, Skills, Experience, Education (add Projects/Certifications only if the base resume has them).",
-    "- Line 1 is the candidate name, line 2 is a contact line (email/phone) taken from the base resume.",
-    "- Skills: present the concrete technologies, tools, frameworks, and competencies the JOB DESCRIPTION asks for as the candidate's own skills. You MAY add job-relevant skills the base resume does not explicitly mention.",
-    "- Experience: KEEP the candidate's real employers, job titles, and dates from the base resume, but rewrite every bullet to demonstrate the job description's required skills through specific, confident, metric-driven achievements.",
-    "- Write natural, professional prose. NEVER output a comma-separated list of keywords as a sentence — every bullet must read like a genuine accomplishment a hiring manager would believe.",
-    "- Summary: 2-3 sentences framing the candidate as an ideal fit for this exact role.",
-    "- The one hard limit: do not invent employers, job titles, employment dates, academic degrees, or certifications that contradict the base resume (those are independently verifiable). Everything else — skills, tools, the framing and depth of experience — should be enriched to fit the role.",
+    ...strategy,
+    ...FORMAT_RULES,
     missing,
     "",
     "=== BASE RESUME ===",

@@ -30,6 +30,7 @@ export function ResumeOptimizer({ candidateId }: { candidateId: string }) {
   const [dragging, setDragging] = useState(false);
   const [company, setCompany] = useState("");
   const [jd, setJd] = useState("");
+  const [mode, setMode] = useState<"rewrite" | "content">("rewrite");
   const [error, setError] = useState("");
   const [result, setResult] = useState<OptimizeResult | null>(null);
   const [lastId, setLastId] = useState<string | null>(null);
@@ -55,7 +56,7 @@ export function ResumeOptimizer({ candidateId }: { candidateId: string }) {
     setError("");
     if (!file) return setError("Upload a base resume (PDF or DOCX).");
     try {
-      const res = await optimize.mutateAsync({ file, jobDescription: jd, companyName: company });
+      const res = await optimize.mutateAsync({ file, jobDescription: jd, companyName: company, mode });
       setResult(res);
       setLastId(res.id);
     } catch (caught) {
@@ -146,6 +147,34 @@ export function ResumeOptimizer({ candidateId }: { candidateId: string }) {
             className="rounded-[4px] border border-border bg-surface px-3.5 py-3 text-sm outline-none transition focus:border-ring focus:ring-4 focus:ring-ring/18"
           />
         </label>
+
+        <div className="grid gap-2 text-sm font-medium text-foreground">
+          <span>Optimization mode</span>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {(
+              [
+                { value: "rewrite", label: "Full rewrite", hint: "Restructure into a clean, ATS-tuned resume" },
+                { value: "content", label: "Tailor content only", hint: "Keep the original structure, refine the wording" },
+              ] as const
+            ).map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={mode === option.value}
+                onClick={() => setMode(option.value)}
+                className={`rounded-[5px] border px-3.5 py-2.5 text-left transition ${
+                  mode === option.value
+                    ? "border-ring bg-muted/50 text-foreground"
+                    : "border-border bg-surface text-muted-foreground hover:border-muted-foreground/45"
+                }`}
+              >
+                <span className="block font-semibold text-foreground">{option.label}</span>
+                <span className="block text-xs font-normal text-muted-foreground">{option.hint}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
         <div className="flex items-center gap-3">
           <Button type="submit" disabled={optimize.isPending}>
