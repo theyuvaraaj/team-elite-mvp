@@ -36,9 +36,20 @@ export async function resumeRoutes(app: FastifyInstance): Promise<void> {
     const user = request.user!;
     await assertCanAccessCandidate(user, id);
 
-    const file = await request.file();
-    if (!file) throw new AppError(400, "NO_FILE", "Upload a base resume file");
-    const buffer = await file.toBuffer();
+    let file: Awaited<ReturnType<typeof request.file>>;
+    let buffer: Buffer;
+    try {
+      file = await request.file();
+      if (!file) throw new AppError(400, "NO_FILE", "Upload a base resume file");
+      buffer = await file.toBuffer();
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      const statusCode = (error as { statusCode?: number })?.statusCode;
+      if (statusCode === 413) {
+        throw new AppError(413, "FILE_TOO_LARGE", "Resume file is too large (max 5MB)");
+      }
+      throw error;
+    }
     const fields = parseBody(optimizeFieldsSchema, {
       jobDescription: (file.fields.jobDescription as { value?: string })?.value,
       companyName: (file.fields.companyName as { value?: string })?.value,
