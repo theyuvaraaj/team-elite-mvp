@@ -13,6 +13,11 @@ import {
 } from "./adminApi";
 import type { EmployeeCandidate } from "../employee/employeeApi";
 
+const ACTION_BTN =
+  "inline-flex items-center rounded-[4px] border border-border bg-surface px-2.5 py-1 text-xs font-medium text-muted-foreground transition hover:border-muted-foreground/45 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background";
+const ACTION_BTN_DANGER =
+  "inline-flex items-center rounded-[4px] border border-danger/35 bg-surface px-2.5 py-1 text-xs font-medium text-danger transition hover:border-danger/60 hover:bg-danger/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40 focus-visible:ring-offset-1 focus-visible:ring-offset-background";
+
 type UserType = "candidates" | "employees";
 type Editor =
   | { type: "candidate"; record?: EmployeeCandidate }
@@ -213,13 +218,13 @@ export function AdminUsersPage() {
                   <tr key={record.id} className="border-b border-border/70 last:border-0">
                     <td className="px-5 py-4 font-semibold"><Link to={`/admin/candidates/${record.id}`} className="text-foreground hover:text-brand hover:underline">{record.user.name}</Link></td><td className="px-5 py-4 text-muted-foreground">{record.user.email}</td><td className="px-5 py-4 text-muted-foreground">{record.primaryRole || "—"}</td>
                     <td className="px-5 py-4"><span className={`inline-flex rounded-[3px] border px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.08em] ${record.user.isActive ? "border-success/40 text-success" : "border-border text-muted-foreground"}`}>{record.user.isActive ? "Active" : "Disabled"}</span></td>
-                    <td className="whitespace-nowrap px-5 py-4"><button onClick={() => setEditor({ type: "candidate", record })} className="font-mono text-[11px] uppercase tracking-[0.1em] text-brand hover:underline">Edit</button><button onClick={() => void resetPassword(record, "candidate")} className="ml-3 font-mono text-[11px] uppercase tracking-[0.1em] text-brand hover:underline">Reset password / Resend invite</button>{record.user.isActive ? <button onClick={() => setDisableTarget({ type: "candidate", id: record.id, name: record.user.name })} className="ml-3 font-mono text-[11px] uppercase tracking-[0.1em] text-danger hover:underline">Disable</button> : null}</td>
+                    <td className="whitespace-nowrap px-5 py-4"><div className="flex items-center gap-2"><button type="button" onClick={() => setEditor({ type: "candidate", record })} className={ACTION_BTN}>Edit</button><button type="button" onClick={() => void resetPassword(record, "candidate")} className={ACTION_BTN}>Reset / Resend</button>{record.user.isActive ? <button type="button" onClick={() => setDisableTarget({ type: "candidate", id: record.id, name: record.user.name })} className={ACTION_BTN_DANGER}>Disable</button> : null}</div></td>
                   </tr>
                 )) : employees.map((record) => (
                   <tr key={record.id} className="border-b border-border/70 last:border-0">
                     <td className="px-5 py-4 font-semibold">{record.user.name}</td><td className="px-5 py-4 text-muted-foreground">{record.user.email}</td><td className="px-5 py-4 font-mono text-muted-foreground">{record.employeeCode}</td>
                     <td className="px-5 py-4"><span className={`inline-flex rounded-[3px] border px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.08em] ${record.user.isActive ? "border-success/40 text-success" : "border-border text-muted-foreground"}`}>{record.user.isActive ? "Active" : "Disabled"}</span></td>
-                    <td className="whitespace-nowrap px-5 py-4"><button onClick={() => setEditor({ type: "employee", record })} className="font-mono text-[11px] uppercase tracking-[0.1em] text-brand hover:underline">Edit</button><button onClick={() => void resetPassword(record, "employee")} className="ml-3 font-mono text-[11px] uppercase tracking-[0.1em] text-brand hover:underline">Reset password</button>{record.user.isActive ? <button onClick={() => setDisableTarget({ type: "employee", id: record.id, name: record.user.name })} className="ml-3 font-mono text-[11px] uppercase tracking-[0.1em] text-danger hover:underline">Disable</button> : null}</td>
+                    <td className="whitespace-nowrap px-5 py-4"><div className="flex items-center gap-2"><button type="button" onClick={() => setEditor({ type: "employee", record })} className={ACTION_BTN}>Edit</button><button type="button" onClick={() => void resetPassword(record, "employee")} className={ACTION_BTN}>Reset</button>{record.user.isActive ? <button type="button" onClick={() => setDisableTarget({ type: "employee", id: record.id, name: record.user.name })} className={ACTION_BTN_DANGER}>Disable</button> : null}</div></td>
                   </tr>
                 ))}
                 {(type === "candidates" ? candidates : employees).length === 0 ? <tr><td colSpan={5} className="p-12 text-center text-muted-foreground">No matching {type}.</td></tr> : null}

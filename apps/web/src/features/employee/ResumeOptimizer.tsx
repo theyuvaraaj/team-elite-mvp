@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type DragEvent } from "react";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { ApiError } from "../../lib/api";
@@ -9,20 +9,50 @@ import {
   type OptimizeResult,
 } from "./resumeApi";
 
+const ACCEPTED = [".pdf", ".docx", ".txt"];
+
+function isAccepted(file: File): boolean {
+  const name = file.name.toLowerCase();
+  return ACCEPTED.some((ext) => name.endsWith(ext));
+}
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function ResumeOptimizer({ candidateId }: { candidateId: string }) {
   const optimize = useOptimizeResume(candidateId);
   const history = useCandidateResumes(candidateId);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [dragging, setDragging] = useState(false);
   const [company, setCompany] = useState("");
   const [jd, setJd] = useState("");
   const [error, setError] = useState("");
   const [result, setResult] = useState<OptimizeResult | null>(null);
   const [lastId, setLastId] = useState<string | null>(null);
 
+  function acceptFile(next: File | undefined) {
+    if (!next) return;
+    if (!isAccepted(next)) {
+      setError("Unsupported file. Upload a PDF, DOCX, or text resume.");
+      return;
+    }
+    setError("");
+    setFile(next);
+  }
+
+  function onDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setDragging(false);
+    acceptFile(event.dataTransfer.files?.[0]);
+  }
+
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setError("");
-    const file = fileRef.current?.files?.[0];
     if (!file) return setError("Upload a base resume (PDF or DOCX).");
     try {
       const res = await optimize.mutateAsync({ file, jobDescription: jd, companyName: company });
@@ -45,15 +75,59 @@ export function ResumeOptimizer({ candidateId }: { candidateId: string }) {
       </div>
 
       <form onSubmit={submit} className="panel grid gap-5 p-6">
-        <label className="grid gap-2 text-sm font-medium text-foreground">
-          Base resume (PDF or DOCX)
+        <div className="grid gap-2 text-sm font-medium text-foreground">
+          <span>Base resume</span>
           <input
             ref={fileRef}
             type="file"
             accept=".pdf,.docx,text/plain"
-            className="rounded-[4px] border border-border bg-surface px-3.5 py-2.5 text-sm file:mr-3 file:rounded-[3px] file:border-0 file:bg-accent file:px-3 file:py-1.5 file:text-accent-foreground"
+            className="sr-only"
+            onChange={(e) => acceptFile(e.target.files?.[0])}
           />
-        </label>
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label="Upload base resume — drag and drop or click to browse"
+            onClick={() => fileRef.current?.click()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                fileRef.current?.click();
+              }
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={onDrop}
+            className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-[6px] border-2 border-dashed px-6 py-8 text-center transition ${
+              dragging
+                ? "border-ring bg-muted/50"
+                : "border-border bg-surface hover:border-muted-foreground/45 hover:bg-muted/30"
+            }`}
+          >
+            <UploadIcon />
+            {file ? (
+              <div>
+                <p className="text-sm font-semibold text-foreground">{file.name}</p>
+                <p className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
+                  {formatSize(file.size)} · click or drop to replace
+                </p>
+              </div>
+            ) : (
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  Drag &amp; drop your resume here
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  or click to browse — PDF, DOCX, or TXT
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
         <Input
           label="Company name"
           name="company"
@@ -130,10 +204,22 @@ export function ResumeOptimizer({ candidateId }: { candidateId: string }) {
                       {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(r.createdAt))}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="led-figure text-sm text-foreground">{r.atsScore}/100</span>
-                    <button type="button" onClick={() => void downloadResume(candidateId, r.id, "docx")} className="font-mono text-[11px] uppercase tracking-[0.1em] text-brand hover:underline">DOCX</button>
-                    <button type="button" onClick={() => void downloadResume(candidateId, r.id, "pdf")} className="font-mono text-[11px] uppercase tracking-[0.1em] text-brand hover:underline">PDF</button>
+                  <div className="flex items-center gap-2">
+                    <span className="led-figure mr-1 text-sm text-foreground">{r.atsScore}/100</span>
+                    <button
+                      type="button"
+                      onClick={() => void downloadResume(candidateId, r.id, "docx")}
+                      className="inline-flex items-center rounded-[4px] border border-border bg-surface px-2.5 py-1 text-xs font-medium text-muted-foreground transition hover:border-muted-foreground/45 hover:text-foreground"
+                    >
+                      DOCX
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void downloadResume(candidateId, r.id, "pdf")}
+                      className="inline-flex items-center rounded-[4px] border border-border bg-surface px-2.5 py-1 text-xs font-medium text-muted-foreground transition hover:border-muted-foreground/45 hover:text-foreground"
+                    >
+                      PDF
+                    </button>
                   </div>
                 </li>
               ))}
@@ -146,5 +232,19 @@ export function ResumeOptimizer({ candidateId }: { candidateId: string }) {
         </div>
       </div>
     </section>
+  );
+}
+
+function UploadIcon() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="text-muted-foreground">
+      <path
+        d="M12 15V4m0 0 4 4m-4-4L8 8M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

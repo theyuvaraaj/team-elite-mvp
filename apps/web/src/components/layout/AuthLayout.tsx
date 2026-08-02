@@ -41,7 +41,7 @@ export function AuthLayout({
             ].map((item, index) => (
               <div
                 key={item.label}
-                className={`py-4 pr-4 ${index < 2 ? "border-r border-[#ece2cd]/15" : ""}`}
+                className={`py-4 pr-4 ${index > 0 ? "pl-4" : ""} ${index < 2 ? "border-r border-[#ece2cd]/15" : ""}`}
               >
                 <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#ece2cd]/50">
                   {item.label}

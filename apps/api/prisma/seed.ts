@@ -5,139 +5,111 @@ import { PrismaClient, UserRole } from "@prisma/client";
 const prisma = new PrismaClient();
 
 /** Local/demo accounts — never use these passwords in production. */
-const DEMO = {
-  employee: {
-    name: "Alex Employee",
-    email: "employee@teamelite.local",
-    password: "Employee123!",
-    employeeCode: "E-1001",
-  },
-  candidate: {
-    name: "Priya Candidate",
-    email: "candidate@teamelite.local",
-    password: "Candidate123!",
-    phone: "+1 555 0100",
-    primaryRole: "Backend Engineer",
-    experience: "4 years",
-  },
-} as const;
+const DEMO_PASSWORD = {
+  employee: "Employee123!",
+  candidate: "Candidate123!",
+};
+
+const EMPLOYEES = [
+  { name: "Aarav Mehta", email: "employee@teamelite.local", employeeCode: "E-1001", password: DEMO_PASSWORD.employee },
+  { name: "Kabir Nair", email: "kabir.nair@teamelite.local", employeeCode: "E-1002" },
+] as const;
+
+const CANDIDATES = [
+  { name: "Priya Sharma", email: "candidate@teamelite.local", phone: "+1 555 0100", primaryRole: "Backend Engineer", experience: "4 years", assignedTo: "employee@teamelite.local", password: DEMO_PASSWORD.candidate },
+  { name: "Rohan Iyer", email: "rohan.iyer@teamelite.local", phone: "+1 555 0142", primaryRole: "Frontend Engineer", experience: "3 years", assignedTo: "employee@teamelite.local" },
+  { name: "Ananya Rao", email: "ananya.rao@teamelite.local", phone: "+1 555 0188", primaryRole: "Data Analyst", experience: "2 years", assignedTo: "kabir.nair@teamelite.local" },
+  { name: "Vikram Singh", email: "vikram.singh@teamelite.local", phone: "+1 555 0207", primaryRole: "DevOps Engineer", experience: "6 years", assignedTo: "kabir.nair@teamelite.local" },
+] as const;
+
+/**
+ * Remove leftover integration-test users (unique suffixed emails from killed
+ * test runs that never reached their afterAll cleanup). Deletes FK-dependent
+ * rows first so the users can be removed.
+ */
+async function purgeTestData() {
+  const patterns = ["res-", "stats-", "applications-", "authz-", "admin-users-"];
+  const orphans = await prisma.user.findMany({
+    where: { OR: patterns.map((p) => ({ email: { startsWith: p } })) },
+    select: { id: true, candidate: { select: { id: true } } },
+  });
+  if (orphans.length === 0) return;
+
+  const userIds = orphans.map((u) => u.id);
+  const candidateIds = orphans
+    .map((u) => u.candidate?.id)
+    .filter((id): id is string => Boolean(id));
+
+  await prisma.optimizedResume.deleteMany({
+    where: { OR: [{ createdById: { in: userIds } }, { candidateId: { in: candidateIds } }] },
+  });
+  await prisma.auditLog.deleteMany({ where: { userId: { in: userIds } } });
+  await prisma.application.deleteMany({ where: { candidateId: { in: candidateIds } } });
+  await prisma.assignment.deleteMany({
+    where: { OR: [{ assignedBy: { in: userIds } }, { candidateId: { in: candidateIds } }] },
+  });
+  // candidates/employees cascade-delete with their user
+  await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+  console.log(`Purged ${userIds.length} leftover test user(s)`);
+}
 
 async function main() {
   const email = process.env.SEED_ADMIN_EMAIL;
   const password = process.env.SEED_ADMIN_PASSWORD;
-
   if (!email || !password) {
     throw new Error("SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD must be set");
   }
 
+  await purgeTestData();
+
   const adminHash = await argon2.hash(password);
   const admin = await prisma.user.upsert({
     where: { email },
-    update: {
-      name: "Admin",
-      passwordHash: adminHash,
-      role: UserRole.ADMIN,
-      isActive: true,
-    },
-    create: {
-      name: "Admin",
-      email,
-      passwordHash: adminHash,
-      role: UserRole.ADMIN,
-      isActive: true,
-    },
+    update: { name: "Neha Verma", passwordHash: adminHash, role: UserRole.ADMIN, isActive: true },
+    create: { name: "Neha Verma", email, passwordHash: adminHash, role: UserRole.ADMIN, isActive: true },
   });
+  console.log(`Seeded admin: ${email}`);
 
-  console.log(`Seeded admin user: ${email}`);
+  const employeeIdByEmail = new Map<string, string>();
+  for (const emp of EMPLOYEES) {
+    const passwordHash = emp.password ? await argon2.hash(emp.password) : null;
+    const user = await prisma.user.upsert({
+      where: { email: emp.email },
+      update: { name: emp.name, role: UserRole.EMPLOYEE, isActive: true, ...(passwordHash ? { passwordHash } : {}) },
+      create: { name: emp.name, email: emp.email, role: UserRole.EMPLOYEE, isActive: true, passwordHash },
+    });
+    const employee = await prisma.employee.upsert({
+      where: { userId: user.id },
+      update: { name: emp.name, employeeCode: emp.employeeCode },
+      create: { userId: user.id, name: emp.name, employeeCode: emp.employeeCode },
+    });
+    employeeIdByEmail.set(emp.email, employee.id);
+  }
+  console.log(`Seeded ${EMPLOYEES.length} employees`);
 
-  const employeeHash = await argon2.hash(DEMO.employee.password);
-  const employeeUser = await prisma.user.upsert({
-    where: { email: DEMO.employee.email },
-    update: {
-      name: DEMO.employee.name,
-      passwordHash: employeeHash,
-      role: UserRole.EMPLOYEE,
-      isActive: true,
-    },
-    create: {
-      name: DEMO.employee.name,
-      email: DEMO.employee.email,
-      passwordHash: employeeHash,
-      role: UserRole.EMPLOYEE,
-      isActive: true,
-    },
-  });
-
-  const employee = await prisma.employee.upsert({
-    where: { userId: employeeUser.id },
-    update: {
-      name: DEMO.employee.name,
-      employeeCode: DEMO.employee.employeeCode,
-    },
-    create: {
-      userId: employeeUser.id,
-      name: DEMO.employee.name,
-      employeeCode: DEMO.employee.employeeCode,
-    },
-  });
-
-  console.log(`Seeded employee: ${DEMO.employee.email} / ${DEMO.employee.password}`);
-
-  const candidateHash = await argon2.hash(DEMO.candidate.password);
-  const candidateUser = await prisma.user.upsert({
-    where: { email: DEMO.candidate.email },
-    update: {
-      name: DEMO.candidate.name,
-      passwordHash: candidateHash,
-      role: UserRole.CANDIDATE,
-      isActive: true,
-    },
-    create: {
-      name: DEMO.candidate.name,
-      email: DEMO.candidate.email,
-      passwordHash: candidateHash,
-      role: UserRole.CANDIDATE,
-      isActive: true,
-    },
-  });
-
-  const candidate = await prisma.candidate.upsert({
-    where: { userId: candidateUser.id },
-    update: {
-      phone: DEMO.candidate.phone,
-      primaryRole: DEMO.candidate.primaryRole,
-      experience: DEMO.candidate.experience,
-    },
-    create: {
-      userId: candidateUser.id,
-      phone: DEMO.candidate.phone,
-      primaryRole: DEMO.candidate.primaryRole,
-      experience: DEMO.candidate.experience,
-    },
-  });
-
-  console.log(
-    `Seeded candidate: ${DEMO.candidate.email} / ${DEMO.candidate.password}`,
-  );
-
-  await prisma.assignment.upsert({
-    where: {
-      employeeId_candidateId: {
-        employeeId: employee.id,
-        candidateId: candidate.id,
-      },
-    },
-    update: {},
-    create: {
-      employeeId: employee.id,
-      candidateId: candidate.id,
-      assignedBy: admin.id,
-    },
-  });
-
-  console.log(
-    `Assigned ${DEMO.employee.email} → ${DEMO.candidate.email}`,
-  );
+  for (const cand of CANDIDATES) {
+    const passwordHash = cand.password ? await argon2.hash(cand.password) : null;
+    const user = await prisma.user.upsert({
+      where: { email: cand.email },
+      update: { name: cand.name, role: UserRole.CANDIDATE, isActive: true, ...(passwordHash ? { passwordHash } : {}) },
+      create: { name: cand.name, email: cand.email, role: UserRole.CANDIDATE, isActive: true, passwordHash },
+    });
+    const candidate = await prisma.candidate.upsert({
+      where: { userId: user.id },
+      update: { phone: cand.phone, primaryRole: cand.primaryRole, experience: cand.experience },
+      create: { userId: user.id, phone: cand.phone, primaryRole: cand.primaryRole, experience: cand.experience },
+    });
+    const employeeId = employeeIdByEmail.get(cand.assignedTo);
+    if (employeeId) {
+      await prisma.assignment.upsert({
+        where: { employeeId_candidateId: { employeeId, candidateId: candidate.id } },
+        update: {},
+        create: { employeeId, candidateId: candidate.id, assignedBy: admin.id },
+      });
+    }
+  }
+  console.log(`Seeded ${CANDIDATES.length} candidates + assignments`);
+  console.log(`Demo logins: employee@teamelite.local / ${DEMO_PASSWORD.employee} · candidate@teamelite.local / ${DEMO_PASSWORD.candidate}`);
 }
 
 main()
