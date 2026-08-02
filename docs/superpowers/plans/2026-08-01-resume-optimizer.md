@@ -626,7 +626,10 @@ export class StubOptimizer implements ResumeOptimizer {
 }
 
 export function getOptimizer(): ResumeOptimizer {
-  if (config.NODE_ENV === "test" || !config.GEMINI_API_KEY) return new StubOptimizer();
+  // Stub only OUTSIDE production: test/dev stay offline, but a keyless
+  // production deploy falls through to GeminiOptimizer, which throws
+  // 503 OPTIMIZER_UNCONFIGURED rather than fabricating a resume.
+  if (config.NODE_ENV !== "production" && !config.GEMINI_API_KEY) return new StubOptimizer();
   return new GeminiOptimizer();
 }
 ```
