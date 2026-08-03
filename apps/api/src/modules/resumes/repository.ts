@@ -34,6 +34,15 @@ export function listOptimizedResumes(candidateId: string) {
 export function findOptimizedResume(candidateId: string, id: string) {
   return prisma.optimizedResume.findFirst({
     where: { id, candidateId },
-    select: { id: true, companyName: true, contentMarkdown: true },
+    select: {
+      id: true,
+      companyName: true,
+      contentMarkdown: true,
+      candidate: {
+        select: {
+          user: { select: { name: true, firstName: true, lastName: true } },
+        },
+      },
+    },
   });
 }

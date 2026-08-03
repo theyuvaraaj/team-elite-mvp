@@ -8,8 +8,12 @@ const optionalEmail = z
   .transform((value) => value.toLowerCase())
   .optional();
 
+const optionalName = z.string().trim().max(80).optional().nullable();
+
 export const createCandidateSchema = z.object({
   name: z.string().trim().min(1),
+  firstName: optionalName,
+  lastName: optionalName,
   email: z
     .string()
     .trim()

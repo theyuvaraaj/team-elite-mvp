@@ -11,6 +11,8 @@ interface ProfileDetails {
   id: string;
   email: string;
   name: string;
+  firstName?: string | null;
+  lastName?: string | null;
   role: UserRole;
   phone?: string | null;
   gender?: string | null;
@@ -30,6 +32,8 @@ export function ProfilePage() {
   const [success, setSuccess] = useState("");
 
   const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [gender, setGender] = useState("");
   const [address, setAddress] = useState("");
@@ -47,6 +51,8 @@ export function ProfilePage() {
         if (cancelled) return;
         setProfile(data);
         setName(data.name);
+        setFirstName(data.firstName ?? "");
+        setLastName(data.lastName ?? "");
         setPhone(data.phone ?? "");
         setGender(data.gender ?? "");
         setAddress(data.address ?? "");
@@ -81,6 +87,8 @@ export function ProfilePage() {
         method: "PATCH",
         body: JSON.stringify({
           name: name.trim(),
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
           ...(user?.role === "CANDIDATE"
             ? {
                 phone,
@@ -178,6 +186,23 @@ export function ProfilePage() {
                 onChange={(event) => setName(event.target.value)}
                 required
               />
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Input
+                  label="First name"
+                  hint="Optional"
+                  name="firstName"
+                  value={firstName}
+                  onChange={(event) => setFirstName(event.target.value)}
+                />
+                <Input
+                  label="Last name"
+                  hint="Optional"
+                  name="lastName"
+                  value={lastName}
+                  onChange={(event) => setLastName(event.target.value)}
+                />
+              </div>
 
               {user?.role === "CANDIDATE" ? (
                 <>

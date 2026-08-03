@@ -17,6 +17,8 @@ export interface AdminEmployee {
   user: {
     id: string;
     name: string;
+    firstName: string | null;
+    lastName: string | null;
     email: string;
     isActive: boolean;
     createdAt: string;
@@ -59,6 +61,8 @@ export interface AuditLogPage {
 
 export interface CandidateInput {
   name: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   contactEmail?: string;
   phone?: string;
@@ -70,6 +74,8 @@ export interface CandidateInput {
 
 export interface EmployeeInput {
   name: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   employeeCode: string;
 }

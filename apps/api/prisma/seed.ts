@@ -4,6 +4,11 @@ import { PrismaClient, UserRole } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+function splitName(full: string): { firstName: string; lastName: string } {
+  const parts = full.trim().split(/\s+/);
+  return { firstName: parts[0] ?? full, lastName: parts.slice(1).join(" ") };
+}
+
 /** Local/demo accounts — never use these passwords in production. */
 const DEMO_PASSWORD = {
   employee: "Employee123!",
@@ -63,20 +68,22 @@ async function main() {
   await purgeTestData();
 
   const adminHash = await argon2.hash(password);
+  const adminName = splitName("Neha Verma");
   const admin = await prisma.user.upsert({
     where: { email },
-    update: { name: "Neha Verma", passwordHash: adminHash, role: UserRole.ADMIN, isActive: true },
-    create: { name: "Neha Verma", email, passwordHash: adminHash, role: UserRole.ADMIN, isActive: true },
+    update: { name: "Neha Verma", ...adminName, passwordHash: adminHash, role: UserRole.ADMIN, isActive: true },
+    create: { name: "Neha Verma", ...adminName, email, passwordHash: adminHash, role: UserRole.ADMIN, isActive: true },
   });
   console.log(`Seeded admin: ${email}`);
 
   const employeeIdByEmail = new Map<string, string>();
   for (const emp of EMPLOYEES) {
     const passwordHash = emp.password ? await argon2.hash(emp.password) : null;
+    const parts = splitName(emp.name);
     const user = await prisma.user.upsert({
       where: { email: emp.email },
-      update: { name: emp.name, role: UserRole.EMPLOYEE, isActive: true, ...(passwordHash ? { passwordHash } : {}) },
-      create: { name: emp.name, email: emp.email, role: UserRole.EMPLOYEE, isActive: true, passwordHash },
+      update: { name: emp.name, ...parts, role: UserRole.EMPLOYEE, isActive: true, ...(passwordHash ? { passwordHash } : {}) },
+      create: { name: emp.name, ...parts, email: emp.email, role: UserRole.EMPLOYEE, isActive: true, passwordHash },
     });
     const employee = await prisma.employee.upsert({
       where: { userId: user.id },
@@ -89,10 +96,11 @@ async function main() {
 
   for (const cand of CANDIDATES) {
     const passwordHash = cand.password ? await argon2.hash(cand.password) : null;
+    const parts = splitName(cand.name);
     const user = await prisma.user.upsert({
       where: { email: cand.email },
-      update: { name: cand.name, role: UserRole.CANDIDATE, isActive: true, ...(passwordHash ? { passwordHash } : {}) },
-      create: { name: cand.name, email: cand.email, role: UserRole.CANDIDATE, isActive: true, passwordHash },
+      update: { name: cand.name, ...parts, role: UserRole.CANDIDATE, isActive: true, ...(passwordHash ? { passwordHash } : {}) },
+      create: { name: cand.name, ...parts, email: cand.email, role: UserRole.CANDIDATE, isActive: true, passwordHash },
     });
     const candidate = await prisma.candidate.upsert({
       where: { userId: user.id },

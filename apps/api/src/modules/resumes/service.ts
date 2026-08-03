@@ -68,5 +68,13 @@ export function listResumes(candidateId: string) {
 export async function getResumeForDownload(candidateId: string, id: string) {
   const resume = await repository.findOptimizedResume(candidateId, id);
   if (!resume) throw new AppError(404, "RESUME_NOT_FOUND", "Optimized resume not found");
-  return { companyName: resume.companyName, contentMarkdown: resume.contentMarkdown };
+  const u = resume.candidate.user;
+  const fromParts = [u.firstName, u.lastName].filter(Boolean).join(" ").trim();
+  return {
+    companyName: resume.companyName,
+    contentMarkdown: resume.contentMarkdown,
+    // Prefer structured first/last, then the full name; the route falls back
+    // to the resume's own name line if this is empty.
+    candidateName: fromParts || u.name || "",
+  };
 }

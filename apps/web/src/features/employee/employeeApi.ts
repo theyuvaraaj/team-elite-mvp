@@ -4,6 +4,8 @@ import { api } from "../../lib/api";
 export interface CandidateUser {
   id: string;
   name: string;
+  firstName: string | null;
+  lastName: string | null;
   email: string;
   isActive: boolean;
 }

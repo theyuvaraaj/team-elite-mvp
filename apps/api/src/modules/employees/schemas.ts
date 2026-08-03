@@ -1,7 +1,11 @@
 import { z } from "zod";
 
+const optionalName = z.string().trim().max(80).optional().nullable();
+
 export const createEmployeeSchema = z.object({
   name: z.string().trim().min(1),
+  firstName: optionalName,
+  lastName: optionalName,
   email: z
     .string()
     .trim()

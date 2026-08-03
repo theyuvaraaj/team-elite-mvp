@@ -13,6 +13,8 @@ export const setPasswordSchema = z.object({
 
 export const updateProfileSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
+  firstName: z.string().trim().max(80).optional().nullable(),
+  lastName: z.string().trim().max(80).optional().nullable(),
   phone: z.string().trim().max(40).optional().nullable(),
   gender: z.string().trim().max(40).optional().nullable(),
   address: z.string().trim().max(500).optional().nullable(),

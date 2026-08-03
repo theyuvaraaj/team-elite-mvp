@@ -2,6 +2,8 @@ import type { Prisma, UserRole } from "@prisma/client";
 
 export interface CreateUserData {
   name: string;
+  firstName?: string | null;
+  lastName?: string | null;
   email: string;
   role: UserRole;
 }
@@ -16,7 +18,7 @@ export async function createUser(
 export async function updateUser(
   tx: Prisma.TransactionClient,
   id: string,
-  data: { name?: string; email?: string },
+  data: { name?: string; firstName?: string | null; lastName?: string | null; email?: string },
 ) {
   return tx.user.update({ where: { id }, data });
 }

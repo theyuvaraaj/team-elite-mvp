@@ -15,6 +15,8 @@ const candidateInclude = {
     select: {
       id: true,
       name: true,
+      firstName: true,
+      lastName: true,
       email: true,
       role: true,
       isActive: true,
@@ -45,6 +47,8 @@ export async function createCandidate(data: CreateCandidateInput) {
   return prisma.$transaction(async (tx) => {
     const user = await createUser(tx, {
       name: data.name,
+      firstName: data.firstName,
+      lastName: data.lastName,
       email: data.email,
       role: "CANDIDATE",
     });
@@ -73,8 +77,15 @@ export async function updateCandidate(
     const current = await tx.candidate.findUnique({ where: { id } });
     if (!current) return null;
 
-    const userFields: { name?: string; email?: string } = {};
+    const userFields: {
+      name?: string;
+      firstName?: string | null;
+      lastName?: string | null;
+      email?: string;
+    } = {};
     if (data.name !== undefined) userFields.name = data.name;
+    if (data.firstName !== undefined) userFields.firstName = data.firstName;
+    if (data.lastName !== undefined) userFields.lastName = data.lastName;
     if (data.email !== undefined) userFields.email = data.email;
     if (Object.keys(userFields).length > 0) {
       await updateUser(tx, current.userId, userFields);

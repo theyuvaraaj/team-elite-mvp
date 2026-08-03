@@ -56,6 +56,12 @@ function UserEditor({
   const [name, setName] = useState(candidate?.user.name ?? employee?.user.name ?? "");
   const [email, setEmail] = useState(candidate?.user.email ?? employee?.user.email ?? "");
   const [employeeCode, setEmployeeCode] = useState(employee?.employeeCode ?? "");
+  const [firstName, setFirstName] = useState(
+    candidate?.user.firstName ?? employee?.user.firstName ?? "",
+  );
+  const [lastName, setLastName] = useState(
+    candidate?.user.lastName ?? employee?.user.lastName ?? "",
+  );
   const [contactEmail, setContactEmail] = useState(candidate?.email ?? "");
   const [phone, setPhone] = useState(candidate?.phone ?? "");
   const [primaryRole, setPrimaryRole] = useState(candidate?.primaryRole ?? "");
@@ -71,12 +77,16 @@ function UserEditor({
       if (editor.type === "employee") {
         await onSaveEmployee({
           name: name.trim(),
+          firstName: firstName.trim() || undefined,
+          lastName: lastName.trim() || undefined,
           email: email.trim(),
           employeeCode: employeeCode.trim(),
         });
       } else {
         await onSaveCandidate({
           name: name.trim(),
+          firstName: firstName.trim() || undefined,
+          lastName: lastName.trim() || undefined,
           email: email.trim(),
           ...optionalFields({ contactEmail, phone, primaryRole, experience, gender, address }),
         });
@@ -100,6 +110,10 @@ function UserEditor({
           <div className="grid gap-5 sm:grid-cols-2">
             <label className="text-sm font-medium">Name<input required autoFocus value={name} onChange={(event) => setName(event.target.value)} className={fieldClass} /></label>
             <label className="text-sm font-medium">Login email<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className={fieldClass} /></label>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <label className="text-sm font-medium">First name <span className="font-normal text-muted-foreground">(optional)</span><input value={firstName} onChange={(event) => setFirstName(event.target.value)} className={fieldClass} /></label>
+            <label className="text-sm font-medium">Last name <span className="font-normal text-muted-foreground">(optional)</span><input value={lastName} onChange={(event) => setLastName(event.target.value)} className={fieldClass} /></label>
           </div>
           {editor.type === "employee" ? (
             <label className="block text-sm font-medium">Employee code<input required value={employeeCode} onChange={(event) => setEmployeeCode(event.target.value)} className={fieldClass} /></label>

@@ -105,6 +105,8 @@ export interface ProfileDetails {
   id: string;
   email: string;
   name: string;
+  firstName?: string | null;
+  lastName?: string | null;
   role: UserRole;
   candidateId?: string;
   employeeId?: string;
@@ -134,6 +136,8 @@ export async function getProfile(userId: string): Promise<ProfileDetails> {
     id: user.id,
     email: user.email,
     name: user.name,
+    firstName: user.firstName,
+    lastName: user.lastName,
     role: user.role,
     ...(user.candidate
       ? {
@@ -159,6 +163,8 @@ export async function updateProfile(
   userId: string,
   input: {
     name?: string;
+    firstName?: string | null;
+    lastName?: string | null;
     phone?: string | null;
     gender?: string | null;
     address?: string | null;
@@ -177,11 +183,12 @@ export async function updateProfile(
   }
 
   await prisma.$transaction(async (tx) => {
-    if (input.name !== undefined) {
-      await tx.user.update({
-        where: { id: userId },
-        data: { name: input.name },
-      });
+    const userData: { name?: string; firstName?: string | null; lastName?: string | null } = {};
+    if (input.name !== undefined) userData.name = input.name;
+    if (input.firstName !== undefined) userData.firstName = emptyToNull(input.firstName);
+    if (input.lastName !== undefined) userData.lastName = emptyToNull(input.lastName);
+    if (Object.keys(userData).length > 0) {
+      await tx.user.update({ where: { id: userId }, data: userData });
     }
 
     if (user.employee && input.name !== undefined) {

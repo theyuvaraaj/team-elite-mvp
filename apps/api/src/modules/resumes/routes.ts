@@ -10,8 +10,16 @@ import { renderResumeLatexPdf } from "./latex.js";
 import { parseResumeLines, renderResumeDocx, renderResumePdf } from "./render.js";
 
 /** Recruiter-friendly download name, e.g. "Priya_Sharma_Stripe_Resume.pdf". */
-function resumeFileName(markdown: string, company: string, format: "pdf" | "docx"): string {
-  const name = parseResumeLines(markdown).find((l) => l.kind === "name")?.text ?? "Resume";
+function resumeFileName(
+  candidateName: string,
+  markdown: string,
+  company: string,
+  format: "pdf" | "docx",
+): string {
+  const name =
+    candidateName.trim() ||
+    parseResumeLines(markdown).find((l) => l.kind === "name")?.text ||
+    "Resume";
   const token = (s: string) => s.replace(/[^A-Za-z0-9]+/g, " ").trim().split(/\s+/).join("_");
   const base = [token(name) || "Resume", token(company), "Resume"].filter(Boolean).join("_");
   return `${base}.${format}`;
@@ -88,7 +96,12 @@ export async function resumeRoutes(app: FastifyInstance): Promise<void> {
     const q = downloadQuerySchema.safeParse(request.query);
     if (!q.success) throw new AppError(400, "VALIDATION_ERROR", "Invalid format");
     const resume = await service.getResumeForDownload(id, resumeId!);
-    const filename = resumeFileName(resume.contentMarkdown, resume.companyName, q.data.format);
+    const filename = resumeFileName(
+      resume.candidateName,
+      resume.contentMarkdown,
+      resume.companyName,
+      q.data.format,
+    );
 
     if (q.data.format === "docx") {
       const buf = await renderResumeDocx(resume.contentMarkdown);
