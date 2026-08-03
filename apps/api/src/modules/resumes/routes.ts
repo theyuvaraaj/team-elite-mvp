@@ -7,7 +7,15 @@ import { requireRole } from "../../middleware/requireRole.js";
 import { assertEmployeeAssigned } from "../assignments/service.js";
 import { parseBody } from "../auth/schemas.js";
 import { renderResumeLatexPdf } from "./latex.js";
-import { renderResumeDocx, renderResumePdf } from "./render.js";
+import { parseResumeLines, renderResumeDocx, renderResumePdf } from "./render.js";
+
+/** Recruiter-friendly download name, e.g. "Priya_Sharma_Stripe_Resume.pdf". */
+function resumeFileName(markdown: string, company: string, format: "pdf" | "docx"): string {
+  const name = parseResumeLines(markdown).find((l) => l.kind === "name")?.text ?? "Resume";
+  const token = (s: string) => s.replace(/[^A-Za-z0-9]+/g, " ").trim().split(/\s+/).join("_");
+  const base = [token(name) || "Resume", token(company), "Resume"].filter(Boolean).join("_");
+  return `${base}.${format}`;
+}
 import { downloadQuerySchema, optimizeFieldsSchema } from "./schemas.js";
 import * as service from "./service.js";
 
@@ -80,13 +88,13 @@ export async function resumeRoutes(app: FastifyInstance): Promise<void> {
     const q = downloadQuerySchema.safeParse(request.query);
     if (!q.success) throw new AppError(400, "VALIDATION_ERROR", "Invalid format");
     const resume = await service.getResumeForDownload(id, resumeId!);
-    const safe = resume.companyName.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    const filename = resumeFileName(resume.contentMarkdown, resume.companyName, q.data.format);
 
     if (q.data.format === "docx") {
       const buf = await renderResumeDocx(resume.contentMarkdown);
       return reply
         .header("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-        .header("Content-Disposition", `attachment; filename="resume-${safe}.docx"`)
+        .header("Content-Disposition", `attachment; filename="${filename}"`)
         .send(buf);
     }
     // Prefer a real LaTeX-compiled PDF (authentic resume look); fall back to
@@ -100,7 +108,7 @@ export async function resumeRoutes(app: FastifyInstance): Promise<void> {
     }
     return reply
       .header("Content-Type", "application/pdf")
-      .header("Content-Disposition", `attachment; filename="resume-${safe}.pdf"`)
+      .header("Content-Disposition", `attachment; filename="${filename}"`)
       .send(buf);
   });
 }

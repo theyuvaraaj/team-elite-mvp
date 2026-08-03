@@ -58,11 +58,13 @@ export async function downloadResume(candidateId: string, resumeId: string, form
     credentials: "include",
   });
   if (!res.ok) throw new Error("Download failed");
+  const disposition = res.headers.get("content-disposition") ?? "";
+  const named = /filename="?([^";]+)"?/i.exec(disposition)?.[1];
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `resume.${format}`;
+  a.download = named ? decodeURIComponent(named) : `resume.${format}`;
   document.body.appendChild(a);
   a.click();
   a.remove();
