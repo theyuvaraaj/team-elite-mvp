@@ -16,13 +16,25 @@ const jd = "Need TypeScript, Kubernetes, GraphQL, PostgreSQL, CI/CD.";
 const baseFile = { buffer: Buffer.from("Jane Doe\njane@example.com"), filename: "r.txt", mimetype: "text/plain" };
 
 it("stops refining once the score target is met and persists the best result", async () => {
-  // Optimizer that returns a fully-loaded resume immediately.
+  // A genuinely ATS-strong resume: full contact block, target title, dated
+  // roles, and quantified bullets — everything the scorer grades.
   const good = [
-    "Jane Doe", "jane@example.com | +1 555 0100",
-    "## Summary", "Engineer.",
-    "## Skills", "TypeScript, Kubernetes, GraphQL, PostgreSQL, CI/CD",
-    "## Experience", "- Built TypeScript on Kubernetes with GraphQL and PostgreSQL and CI/CD.",
-    "## Education", "BS",
+    "Jane Doe",
+    "jane@example.com | +1 555 0100 | Austin, TX | linkedin.com/in/janedoe",
+    "## Summary",
+    "Senior Software Engineer with 7 years across TypeScript, Kubernetes, GraphQL, PostgreSQL, and CI/CD.",
+    "## Skills",
+    "TypeScript, Kubernetes, GraphQL, PostgreSQL, CI/CD",
+    "## Experience",
+    "Acme Corp | Senior Software Engineer | Jan 2021 - Present",
+    "- Built TypeScript services on Kubernetes serving 40000 users at 99.9% uptime.",
+    "- Cut GraphQL and PostgreSQL query latency 45% across 12 endpoints.",
+    "- Led CI/CD rollout, trimming deploys from 4 hours to 15 minutes.",
+    "Globex | Software Engineer | Jun 2018 - Dec 2020",
+    "- Delivered 3000 requests per second throughput on core APIs.",
+    ...Array.from({ length: 26 }, (_, i) => `- Shipped improvement ${i + 1} raising throughput ${i + 4}%.`),
+    "## Education",
+    "BS Computer Science, University of Texas, 2018",
   ].join("\n");
   const optimizer: ResumeOptimizer = { optimize: vi.fn(async () => good) };
 

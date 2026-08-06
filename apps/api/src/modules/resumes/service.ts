@@ -1,9 +1,14 @@
 import { config } from "../../config.js";
 import { audit } from "../../lib/audit.js";
 import { AppError } from "../../lib/errors.js";
-import { getOptimizer, type ResumeOptimizer } from "./optimizer.js";
+import {
+  getOptimizer,
+  type OptimizeEnhancements,
+  type ResumeOptimizer,
+} from "./optimizer.js";
 import { parseResumeFile, type UploadedFile } from "./parse.js";
 import * as repository from "./repository.js";
+import { markdownToPlainText } from "./render.js";
 import { scoreResume, type ScoreBreakdown } from "./scorer.js";
 
 export interface OptimizeParams {
@@ -13,6 +18,7 @@ export interface OptimizeParams {
   jobDescription: string;
   companyName: string;
   mode?: "rewrite" | "content";
+  enhancements?: OptimizeEnhancements;
   optimizer?: ResumeOptimizer;
 }
 
@@ -22,6 +28,7 @@ export async function optimizeResume(params: OptimizeParams) {
 
   let best: { markdown: string; score: number; breakdown: ScoreBreakdown } | null = null;
   let missingKeywords: string[] | undefined;
+  let gaps: string[] | undefined;
 
   for (let pass = 0; pass < config.RESUME_MAX_REFINE_PASSES; pass++) {
     const markdown = await optimizer.optimize({
@@ -29,14 +36,20 @@ export async function optimizeResume(params: OptimizeParams) {
       jobDescription: params.jobDescription,
       companyName: params.companyName,
       mode: params.mode,
+      enhancements: params.enhancements,
       missingKeywords,
+      gaps,
     });
-    const scored = scoreResume(markdown, params.jobDescription);
+    // Score the text an ATS would extract from the rendered file, not the
+    // markdown source (whose ** markers become real bold when rendered).
+    const scored = scoreResume(markdownToPlainText(markdown), params.jobDescription);
     if (!best || scored.score > best.score) {
       best = { markdown, score: scored.score, breakdown: scored.breakdown };
     }
     if (scored.score >= config.RESUME_SCORE_TARGET) break;
+    // Feed the specific, scored shortfalls back into the next pass.
     missingKeywords = scored.missingKeywords;
+    gaps = scored.gaps;
   }
 
   if (!best) throw new AppError(502, "OPTIMIZER_FAILED", "Resume optimization produced no result");

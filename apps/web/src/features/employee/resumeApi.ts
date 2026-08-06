@@ -4,10 +4,13 @@ import { api } from "../../lib/api";
 export interface ResumeScoreComponent { earned: number; possible: number }
 export interface ResumeScoreBreakdown {
   keywords: ResumeScoreComponent & { missing: string[] };
-  structure: ResumeScoreComponent;
-  parseability: ResumeScoreComponent;
-  contact: ResumeScoreComponent;
-  length: ResumeScoreComponent;
+  jobTitle: ResumeScoreComponent & { expected: string | null };
+  contact: ResumeScoreComponent & { missing: string[] };
+  measurable: ResumeScoreComponent;
+  structure: ResumeScoreComponent & { missing: string[] };
+  dates: ResumeScoreComponent;
+  length: ResumeScoreComponent & { words: number };
+  parseability: ResumeScoreComponent & { issues: string[] };
 }
 export interface OptimizedResumeSummary {
   id: string; companyName: string; atsScore: number; createdAt: string;
@@ -31,6 +34,10 @@ export function useOptimizeResume(candidateId: string) {
       jobDescription: string;
       companyName: string;
       mode: "rewrite" | "content";
+      alignJobTitles: boolean;
+      addCertifications: boolean;
+      addLocation: boolean;
+      location: string;
     }) => {
       const form = new FormData();
       // Text fields MUST be appended before the file: the API reads them from
@@ -39,6 +46,10 @@ export function useOptimizeResume(candidateId: string) {
       form.append("jobDescription", input.jobDescription);
       form.append("companyName", input.companyName);
       form.append("mode", input.mode);
+      form.append("alignJobTitles", String(input.alignJobTitles));
+      form.append("addCertifications", String(input.addCertifications));
+      form.append("addLocation", String(input.addLocation));
+      if (input.location.trim()) form.append("location", input.location.trim());
       form.append("file", input.file);
       return api<OptimizeResult>(`/api/candidates/${candidateId}/resumes/optimize`, {
         method: "POST",

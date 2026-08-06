@@ -58,6 +58,22 @@ export function parseResumeLines(markdown: string): Line[] {
   return lines;
 }
 
+/**
+ * The plain text an ATS actually extracts from the rendered PDF/DOCX — bold
+ * markers resolved, links flattened, bullets normalized. Score against this
+ * rather than the markdown source, or intentional `**bold**` looks like a defect.
+ */
+export function markdownToPlainText(markdown: string): string {
+  return parseResumeLines(markdown)
+    .map((line) => {
+      const text = parseInline(line.text)
+        .map((s) => s.text)
+        .join("");
+      return line.kind === "bullet" ? `- ${text}` : text;
+    })
+    .join("\n");
+}
+
 function docxRuns(text: string, base?: { size?: number; bold?: boolean }): TextRun[] {
   return parseInline(text).map(
     (s) => new TextRun({ text: s.text, bold: base?.bold || s.bold, size: base?.size }),

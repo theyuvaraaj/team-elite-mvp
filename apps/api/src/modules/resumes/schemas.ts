@@ -1,11 +1,27 @@
 import { z } from "zod";
 
+/**
+ * Multipart form fields arrive as strings. Kept as strings here and coerced by
+ * `isEnabled` at the call site so the parsed object stays simply typed.
+ */
+const multipartFlag = z.string().trim().optional();
+
+/** A multipart flag is enabled only when explicitly "true". */
+export function isEnabled(value: string | undefined): boolean {
+  return value === "true";
+}
+
 export const optimizeFieldsSchema = z.object({
   jobDescription: z.string().min(30, "Paste the full job description"),
   companyName: z.string().min(1, "Company name is required").max(200),
   // "rewrite" = restructure the whole resume; "content" = keep the base
   // resume's structure and only tailor the wording.
   mode: z.enum(["rewrite", "content"]).default("rewrite"),
+  // Opt-in enhancements. Multipart sends strings, so accept "true"/"false".
+  alignJobTitles: multipartFlag,
+  addCertifications: multipartFlag,
+  addLocation: multipartFlag,
+  location: z.string().trim().max(120).optional().nullable(),
 });
 
 export const downloadQuerySchema = z.object({

@@ -8,6 +8,8 @@ import { assertEmployeeAssigned } from "../assignments/service.js";
 import { parseBody } from "../auth/schemas.js";
 import { renderResumeLatexPdf } from "./latex.js";
 import { parseResumeLines, renderResumeDocx, renderResumePdf } from "./render.js";
+import { downloadQuerySchema, isEnabled, optimizeFieldsSchema } from "./schemas.js";
+import * as service from "./service.js";
 
 /** Recruiter-friendly download name, e.g. "Priya_Sharma_Stripe_Resume.pdf". */
 function resumeFileName(
@@ -24,8 +26,6 @@ function resumeFileName(
   const base = [token(name) || "Resume", token(company), "Resume"].filter(Boolean).join("_");
   return `${base}.${format}`;
 }
-import { downloadQuerySchema, optimizeFieldsSchema } from "./schemas.js";
-import * as service from "./service.js";
 
 const idSchema = z.object({ id: z.string().uuid(), resumeId: z.string().uuid().optional() });
 
@@ -71,6 +71,10 @@ export async function resumeRoutes(app: FastifyInstance): Promise<void> {
       jobDescription: (file.fields.jobDescription as { value?: string })?.value,
       companyName: (file.fields.companyName as { value?: string })?.value,
       mode: (file.fields.mode as { value?: string })?.value,
+      alignJobTitles: (file.fields.alignJobTitles as { value?: string })?.value,
+      addCertifications: (file.fields.addCertifications as { value?: string })?.value,
+      addLocation: (file.fields.addLocation as { value?: string })?.value,
+      location: (file.fields.location as { value?: string })?.value,
     });
 
     const result = await service.optimizeResume({
@@ -80,6 +84,12 @@ export async function resumeRoutes(app: FastifyInstance): Promise<void> {
       jobDescription: fields.jobDescription,
       companyName: fields.companyName,
       mode: fields.mode,
+      enhancements: {
+        alignJobTitles: isEnabled(fields.alignJobTitles),
+        addCertifications: isEnabled(fields.addCertifications),
+        addLocation: isEnabled(fields.addLocation),
+        location: fields.location,
+      },
     });
     return reply.status(201).send(result);
   });

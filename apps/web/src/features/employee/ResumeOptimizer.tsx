@@ -31,6 +31,12 @@ export function ResumeOptimizer({ candidateId }: { candidateId: string }) {
   const [company, setCompany] = useState("");
   const [jd, setJd] = useState("");
   const [mode, setMode] = useState<"rewrite" | "content">("rewrite");
+  // Optional enhancements — all off by default.
+  const [alignJobTitles, setAlignJobTitles] = useState(false);
+  const [addCertifications, setAddCertifications] = useState(false);
+  const [addLocation, setAddLocation] = useState(false);
+  const [locationSource, setLocationSource] = useState<"jd" | "manual">("jd");
+  const [location, setLocation] = useState("");
   const [error, setError] = useState("");
   const [result, setResult] = useState<OptimizeResult | null>(null);
   const [lastId, setLastId] = useState<string | null>(null);
@@ -56,7 +62,16 @@ export function ResumeOptimizer({ candidateId }: { candidateId: string }) {
     setError("");
     if (!file) return setError("Upload a base resume (PDF or DOCX).");
     try {
-      const res = await optimize.mutateAsync({ file, jobDescription: jd, companyName: company, mode });
+      const res = await optimize.mutateAsync({
+        file,
+        jobDescription: jd,
+        companyName: company,
+        mode,
+        alignJobTitles,
+        addCertifications,
+        addLocation,
+        location: addLocation && locationSource === "manual" ? location : "",
+      });
       setResult(res);
       setLastId(res.id);
     } catch (caught) {
@@ -175,6 +190,66 @@ export function ResumeOptimizer({ candidateId }: { candidateId: string }) {
           </div>
         </div>
 
+        <fieldset className="grid gap-2">
+          <legend className="mb-1 text-sm font-medium text-foreground">
+            Optional enhancements{" "}
+            <span className="font-normal text-muted-foreground">(off by default)</span>
+          </legend>
+
+          <CheckboxRow
+            checked={alignJobTitles}
+            onChange={setAlignJobTitles}
+            label="Align job titles to the JD"
+            hint="Rewrites past job titles to mirror the job description's wording"
+          />
+          <CheckboxRow
+            checked={addCertifications}
+            onChange={setAddCertifications}
+            label="Add certifications"
+            hint="Adds a Certifications section with credentials relevant to the JD"
+          />
+          <CheckboxRow
+            checked={addLocation}
+            onChange={setAddLocation}
+            label="Add location"
+            hint="Puts a location in the contact line"
+          />
+
+          {addLocation ? (
+            <div className="ml-7 grid gap-2 border-l border-border pl-4">
+              <div className="flex flex-wrap gap-4">
+                {(
+                  [
+                    { value: "jd", label: "Take from job description" },
+                    { value: "manual", label: "Enter manually" },
+                  ] as const
+                ).map((opt) => (
+                  <label key={opt.value} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      name="locationSource"
+                      value={opt.value}
+                      checked={locationSource === opt.value}
+                      onChange={() => setLocationSource(opt.value)}
+                      className="size-4 accent-[var(--brand)]"
+                    />
+                    <span className="text-muted-foreground">{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+              {locationSource === "manual" ? (
+                <input
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Austin, TX"
+                  aria-label="Location"
+                  className="h-10 max-w-xs rounded-[4px] border border-border bg-surface px-3.5 text-sm outline-none transition focus:border-ring focus:ring-4 focus:ring-ring/18"
+                />
+              ) : null}
+            </div>
+          ) : null}
+        </fieldset>
+
         {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
         <div className="flex items-center gap-3">
           <Button type="submit" disabled={optimize.isPending}>
@@ -196,10 +271,27 @@ export function ResumeOptimizer({ candidateId }: { candidateId: string }) {
             <span className="text-base text-muted-foreground"> / 100</span>
           </p>
           <ul className="mt-4 grid gap-1.5 text-sm text-muted-foreground sm:grid-cols-2">
-            <li>Keywords: {result.scoreBreakdown.keywords.earned}/{result.scoreBreakdown.keywords.possible}</li>
-            <li>Structure: {result.scoreBreakdown.structure.earned}/{result.scoreBreakdown.structure.possible}</li>
-            <li>Parseable: {result.scoreBreakdown.parseability.earned}/{result.scoreBreakdown.parseability.possible}</li>
-            <li>Contact: {result.scoreBreakdown.contact.earned}/{result.scoreBreakdown.contact.possible}</li>
+            {(
+              [
+                ["Keyword match", result.scoreBreakdown.keywords],
+                ["Job title match", result.scoreBreakdown.jobTitle],
+                ["Contact details", result.scoreBreakdown.contact],
+                ["Measurable results", result.scoreBreakdown.measurable],
+                ["Sections", result.scoreBreakdown.structure],
+                ["Date formats", result.scoreBreakdown.dates],
+                ["Length", result.scoreBreakdown.length],
+                ["Parseable", result.scoreBreakdown.parseability],
+              ] as const
+            ).map(([label, part]) => (
+              <li key={label} className="flex items-center justify-between gap-3">
+                <span>{label}</span>
+                <span
+                  className={`led-figure ${part.earned === part.possible ? "text-success" : "text-foreground"}`}
+                >
+                  {part.earned}/{part.possible}
+                </span>
+              </li>
+            ))}
           </ul>
           {result.scoreBreakdown.keywords.missing.length ? (
             <p className="mt-3 text-xs text-muted-foreground">
@@ -261,6 +353,33 @@ export function ResumeOptimizer({ candidateId }: { candidateId: string }) {
         </div>
       </div>
     </section>
+  );
+}
+
+function CheckboxRow({
+  checked,
+  onChange,
+  label,
+  hint,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  label: string;
+  hint: string;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3 rounded-[4px] px-1 py-1.5 transition hover:bg-muted/40">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]"
+      />
+      <span>
+        <span className="block text-sm font-medium text-foreground">{label}</span>
+        <span className="block text-xs text-muted-foreground">{hint}</span>
+      </span>
+    </label>
   );
 }
 

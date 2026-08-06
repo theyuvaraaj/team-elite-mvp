@@ -17,7 +17,7 @@ const envSchema = z.object({
   GEMINI_API_KEY: z.string().optional().default(""),
   RESUME_OPTIMIZE_MODEL: z.string().default("gemini-flash-latest"),
   RESUME_MAX_REFINE_PASSES: z.coerce.number().int().positive().default(3),
-  RESUME_SCORE_TARGET: z.coerce.number().int().min(0).max(100).default(90),
+  RESUME_SCORE_TARGET: z.coerce.number().int().min(0).max(100).default(95),
   RESUME_MAX_UPLOAD_MB: z.coerce.number().int().positive().default(5),
   RESUME_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(55000),
   TECTONIC_BIN: z.string().default("tectonic"),
