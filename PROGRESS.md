@@ -80,8 +80,15 @@ Flow: employee finds a job → uploads base resume (drag-drop) → pastes JD →
 company → optional enhancements → **Optimize** → score card + downloads.
 Applies manually, logs it via the existing Applications section.
 
-Supply the posting's **exact job title** when known — scanners match the whole
-title, and it is the largest factor after keywords.
+Supply the posting's **exact job title** when known. Jobscan's own analysis of
+2.5M applications found an exact title match yields 3.5-10.6x more interviews,
+making it the highest-leverage line on the resume. Generated resumes therefore
+carry a **headline line** (line 3, directly under the contact line, before the
+Summary heading) holding that title verbatim — the placement recruiters'
+boolean title searches actually hit. Matching is literal on older systems
+(Taleo treats "program management" and "project management" as different), so
+the prompt forbids synonyms and reordering. Title scoring is placement-weighted:
+10 in the headline, 6 if only buried in prose, <=4 for scattered words.
 
 Three opt-in enhancements, all OFF by default: align job titles to the JD, add
 a Certifications section, add a location (from the JD or entered manually).

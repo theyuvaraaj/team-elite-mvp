@@ -31,7 +31,7 @@ export interface ResumeOptimizer { optimize(input: OptimizeInput): Promise<strin
 const FORMAT_RULES = [
   "Formatting (strict — the output is rendered to PDF/DOCX by a simple parser):",
   "- Output GitHub-flavored Markdown, single column. NO tables, NO images, NO multi-column layout, NO horizontal rules, NO code blocks or backticks.",
-  "- Line 1 is the candidate name; line 2 is a single contact line.",
+  "- Line 1 is the candidate name; line 2 is a single contact line; line 3 is the target job title headline.",
   "- Section titles use '## ' headings. Bullets use '- '. Use **bold** only for a company/role or a skill-group label, never for random words mid-sentence.",
 ];
 
@@ -41,7 +41,8 @@ const FORMAT_RULES = [
  */
 const ATS_RULES = [
   "ATS scoring requirements (these are graded — satisfy every one):",
-  "- TARGET TITLE: use the target title EXACTLY as given, as one contiguous phrase, in the Summary's first sentence AND as the most recent role's title. Do not reword it (no swapping ',' for 'in', no reordering).",
+  "- HEADLINE (highest-value line on the resume): line 3, immediately after the contact line and before the Summary heading, is the target job title on its own — written EXACTLY as given, in Title Case, nothing else on that line. This is where recruiters' title searches look.",
+  "- TARGET TITLE: also use that exact title, as one contiguous phrase, in the Summary's first sentence. Never reword it — do not swap ',' for 'in', do not reorder the words, do not substitute synonyms (scanners like Taleo match near-exactly, so 'program management' does not match 'project management').",
   "- KEYWORDS: reuse the job description's exact wording for skills, including multi-word phrases (e.g. 'payment systems', 'CI/CD pipelines', 'distributed systems'). Match the JD's spelling and casing conventions rather than synonyms.",
   "- CONTACT LINE: one line containing email, phone, city + state/country, and a LinkedIn URL (linkedin.com/in/...), separated by ' | '. Reuse whatever the base resume provides; keep any placeholder the base resume already had.",
   "- METRICS: at least 70% of experience bullets must contain a concrete number tied to a unit — a percentage, currency amount, count of users/requests/engineers, or a time saved. Never write a bare year as the only number.",

@@ -42,16 +42,24 @@ export function markdownToLatex(markdown: string): string {
   const lines = parseResumeLines(markdown);
   const name = lines.find((l) => l.kind === "name")?.text ?? "Resume";
 
-  // The first plain-text line before any heading is the contact line.
+  // Before any heading: the first plain-text line is the contact line and the
+  // second is the target-title headline. Both belong in the centered header.
   let contact = "";
+  let headline = "";
   const body: Line[] = [];
   let seenHeading = false;
   for (const l of lines) {
     if (l.kind === "name") continue;
     if (l.kind === "heading") seenHeading = true;
-    if (!seenHeading && !contact && l.kind === "text") {
-      contact = l.text;
-      continue;
+    if (!seenHeading && l.kind === "text") {
+      if (!contact) {
+        contact = l.text;
+        continue;
+      }
+      if (!headline) {
+        headline = l.text;
+        continue;
+      }
     }
     body.push(l);
   }
@@ -84,7 +92,9 @@ export function markdownToLatex(markdown: string): string {
   const header = [
     "\\begin{center}",
     `{\\LARGE\\bfseries ${esc(name)}}\\\\[3pt]`,
-    contact ? `{\\small ${esc(contact)}}` : "",
+    contact ? `{\\small ${esc(contact)}}\\\\[4pt]` : "",
+    // The title headline: bold and a step up from body text.
+    headline ? `{\\large\\bfseries ${esc(headline)}}` : "",
     "\\end{center}",
     "\\vspace{2pt}",
   ].join("\n");

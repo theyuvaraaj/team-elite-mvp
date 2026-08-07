@@ -282,12 +282,17 @@ export function scoreResume(
   if (titleCandidates.length) {
     // Full marks need the title as one contiguous phrase — scanners look for
     // the whole title, not its words scattered around.
+    // Placement matters: recruiters search titles, and the headline directly
+    // under the contact line is where that search looks.
+    const headline = normalize(resumeText.split("\n").filter((l) => l.trim()).slice(0, 5).join("\n"));
     const scoreTitle = (candidate: string): number => {
       const normalizedTitle = normalize(candidate);
-      if (containsTitlePhrase(text, normalizedTitle)) return 10;
+      if (containsTitlePhrase(text, normalizedTitle)) {
+        return containsTitlePhrase(headline, normalizedTitle) ? 10 : 6;
+      }
       const words = normalizedTitle.split(/\s+/).filter((w) => w.length > 2);
       const hit = words.filter((w) => containsTerm(text, w));
-      return words.length ? Math.min(6, Math.round((hit.length / words.length) * 6)) : 10;
+      return words.length ? Math.min(4, Math.round((hit.length / words.length) * 4)) : 10;
     };
     const weakest = titleCandidates
       .map((title) => ({ title, points: scoreTitle(title) }))
@@ -295,7 +300,7 @@ export function scoreResume(
     titleEarned = weakest.points;
     if (titleEarned < 10) {
       gaps.push(
-        `Use the exact job title "${weakest.title}" as one contiguous phrase in the summary's first sentence AND as the most recent role's title`,
+        `Put the exact job title "${weakest.title}" on its own headline line directly under the contact line (before the Summary heading), and repeat it in the summary's first sentence`,
       );
     }
   }

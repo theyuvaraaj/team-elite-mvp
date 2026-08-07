@@ -127,9 +127,32 @@ describe("scoreResume", () => {
     expect(scoreResume(scattered, jd).breakdown.jobTitle.earned).toBeLessThan(10);
   });
 
+  it("rewards the title in the headline position over one buried in prose", () => {
+    const jd = "Senior Engineer, Site Reliability. You will run Kubernetes.";
+    const headline = [
+      "Jane Doe",
+      "jane@x.com | +1 555 0100 | Austin, TX | linkedin.com/in/jane",
+      "Senior Engineer, Site Reliability",
+      "Summary",
+      "Reliability specialist.",
+      "Experience",
+      "- x",
+    ].join("\n");
+    const buried = [
+      "Jane Doe",
+      "jane@x.com | +1 555 0100 | Austin, TX | linkedin.com/in/jane",
+      "Summary",
+      "Specialist.",
+      "Experience",
+      "- Worked as a Senior Engineer, Site Reliability on call rotations.",
+    ].join("\n");
+    expect(scoreResume(headline, jd).breakdown.jobTitle.earned).toBe(10);
+    expect(scoreResume(buried, jd).breakdown.jobTitle.earned).toBe(6);
+  });
+
   it("uses an explicitly supplied posting title over the inferred one", () => {
     const jd = "We want someone to run Kubernetes clusters.";
-    const resume = "Jane\njane@x.com\nSummary\nStaff Reliability Architect.\nExperience\n- x";
+    const resume = "Jane\njane@x.com\nStaff Reliability Architect\nSummary\nExperienced.\nExperience\n- x";
     const result = scoreResume(resume, jd, { jobTitle: "Staff Reliability Architect" });
     expect(result.breakdown.jobTitle.expected).toBe("Staff Reliability Architect");
     expect(result.breakdown.jobTitle.earned).toBe(10);
