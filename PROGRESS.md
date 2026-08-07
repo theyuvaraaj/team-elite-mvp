@@ -64,7 +64,7 @@ Resume optimizer:
   (never fabricates). Present in this env.
 - `RESUME_OPTIMIZE_MODEL` — default `gemini-flash-latest`. **Do NOT use
   `gemini-2.5-flash`** — it 404s for new API accounts.
-- `RESUME_MAX_REFINE_PASSES` (3), `RESUME_SCORE_TARGET` (90),
+- `RESUME_MAX_REFINE_PASSES` (3), `RESUME_SCORE_TARGET` (95),
   `RESUME_MAX_UPLOAD_MB` (5), `RESUME_REQUEST_TIMEOUT_MS` (55000),
   `TECTONIC_BIN` (`tectonic`), `RESUME_LATEX_TIMEOUT_MS` (45000).
 
@@ -87,11 +87,11 @@ Pipeline (`apps/api/src/modules/resumes/`):
    text. Original binary is discarded.
 2. `optimizer.ts` — `getOptimizer()` returns `StubOptimizer` under
    `NODE_ENV=test` (always) or dev-without-key; else `GeminiOptimizer`
-   (`@google/generative-ai`). Two prompt **modes**: `rewrite` (full
-   restructure, aggressive embellishment) and `content` (keep the base
-   resume's structure, only tailor wording). Hard rule: never invent
-   employers/titles/dates/degrees; skills + framing may be enriched. Per-call
-   timeout (SDK + Promise.race backstop) so a stalled call can't hang.
+   (`@google/generative-ai`). One aggressive tailoring prompt plus the graded
+   `ATS_RULES` and any opt-in enhancements. Hard rule: never invent employers,
+   dates, or degrees; skills, titles (when enabled), and framing may be
+   enriched. Per-call timeout (SDK + Promise.race backstop) so a stalled call
+   can't hang.
 3. `scorer.ts` — transparent 0–100 heuristic modelled on real ATS scanners:
    keywords 40 (whole-term + JD phrase matching, never substrings), job-title
    match 10, contact completeness 10 (email/phone/location/LinkedIn),
@@ -145,7 +145,7 @@ routes accept a UUID or a code.
 ## Testing
 
 ```bash
-pnpm --filter @team-elite/api test    # 52 tests (Vitest, needs postgres up)
+pnpm --filter @team-elite/api test    # 60 tests (Vitest, needs postgres up)
 pnpm --filter @team-elite/web exec vitest run   # 17 tests
 pnpm --filter @team-elite/api exec tsc --noEmit
 pnpm --filter @team-elite/web exec tsc -b
