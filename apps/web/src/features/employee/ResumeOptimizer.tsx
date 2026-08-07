@@ -1,4 +1,5 @@
 import { useRef, useState, type DragEvent } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { ApiError } from "../../lib/api";
@@ -6,6 +7,7 @@ import {
   downloadResume,
   useCandidateResumes,
   useOptimizeResume,
+  useResumeDetail,
   type OptimizeResult,
 } from "./resumeApi";
 
@@ -30,7 +32,6 @@ export function ResumeOptimizer({ candidateId }: { candidateId: string }) {
   const [dragging, setDragging] = useState(false);
   const [company, setCompany] = useState("");
   const [jd, setJd] = useState("");
-  const [mode, setMode] = useState<"rewrite" | "content">("rewrite");
   // Optional enhancements — all off by default.
   const [alignJobTitles, setAlignJobTitles] = useState(false);
   const [addCertifications, setAddCertifications] = useState(false);
@@ -40,6 +41,7 @@ export function ResumeOptimizer({ candidateId }: { candidateId: string }) {
   const [error, setError] = useState("");
   const [result, setResult] = useState<OptimizeResult | null>(null);
   const [lastId, setLastId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   function acceptFile(next: File | undefined) {
     if (!next) return;
@@ -66,7 +68,6 @@ export function ResumeOptimizer({ candidateId }: { candidateId: string }) {
         file,
         jobDescription: jd,
         companyName: company,
-        mode,
         alignJobTitles,
         addCertifications,
         addLocation,
@@ -163,32 +164,6 @@ export function ResumeOptimizer({ candidateId }: { candidateId: string }) {
           />
         </label>
 
-        <div className="grid gap-2 text-sm font-medium text-foreground">
-          <span>Optimization mode</span>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {(
-              [
-                { value: "rewrite", label: "Full rewrite", hint: "Restructure into a clean, ATS-tuned resume" },
-                { value: "content", label: "Tailor content only", hint: "Keep the original structure, refine the wording" },
-              ] as const
-            ).map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                aria-pressed={mode === option.value}
-                onClick={() => setMode(option.value)}
-                className={`rounded-[5px] border px-3.5 py-2.5 text-left transition ${
-                  mode === option.value
-                    ? "border-ring bg-muted/50 text-foreground"
-                    : "border-border bg-surface text-muted-foreground hover:border-muted-foreground/45"
-                }`}
-              >
-                <span className="block font-semibold text-foreground">{option.label}</span>
-                <span className="block text-xs font-normal text-muted-foreground">{option.hint}</span>
-              </button>
-            ))}
-          </div>
-        </div>
 
         <fieldset className="grid gap-2">
           <legend className="mb-1 text-sm font-medium text-foreground">
@@ -319,7 +294,13 @@ export function ResumeOptimizer({ candidateId }: { candidateId: string }) {
               {history.data.resumes.map((r) => (
                 <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
                   <div>
-                    <p className="font-semibold text-foreground">{r.companyName}</p>
+                    <button
+                      type="button"
+                      onClick={() => setOpenId(r.id)}
+                      className="font-semibold text-foreground hover:text-brand hover:underline"
+                    >
+                      {r.companyName}
+                    </button>
                     <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
                       {r.createdBy.name} ·{" "}
                       {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(r.createdAt))}
@@ -352,8 +333,129 @@ export function ResumeOptimizer({ candidateId }: { candidateId: string }) {
           )}
         </div>
       </div>
+
+      {openId ? (
+        <ResumeDetailModal
+          candidateId={candidateId}
+          resumeId={openId}
+          onClose={() => setOpenId(null)}
+        />
+      ) : null}
     </section>
   );
+}
+
+function ResumeDetailModal({
+  candidateId,
+  resumeId,
+  onClose,
+}: {
+  candidateId: string;
+  resumeId: string;
+  onClose: () => void;
+}) {
+  const detail = useResumeDetail(candidateId, resumeId);
+  const d = detail.data;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-foreground/40 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div className="flex min-h-full items-start justify-center">
+        <section
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="resume-detail-title"
+          onClick={(e) => e.stopPropagation()}
+          className="my-8 w-full max-w-4xl rounded-2xl border border-border bg-surface p-6 shadow-2xl"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 id="resume-detail-title" className="font-display text-xl text-foreground">
+                {d?.companyName ?? "Optimized resume"}
+              </h2>
+              {d ? (
+                <p className="eyebrow mt-1.5">
+                  ATS {d.atsScore}/100 · {d.createdBy.name} ·{" "}
+                  {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(
+                    new Date(d.createdAt),
+                  )}
+                </p>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="rounded-[4px] border border-border px-2.5 py-1 text-sm text-muted-foreground hover:text-foreground"
+            >
+              Close
+            </button>
+          </div>
+
+          {detail.isPending ? (
+            <div className="mt-6 h-64 animate-pulse rounded-[6px] bg-muted" />
+          ) : detail.isError || !d ? (
+            <p role="alert" className="mt-6 text-sm text-danger">
+              This optimized resume could not be loaded.
+            </p>
+          ) : (
+            <div className="mt-6 grid gap-6 lg:grid-cols-[1.3fr_1fr]">
+              <div>
+                <h3 className="eyebrow mb-2">Optimized resume</h3>
+                <pre className="max-h-[26rem] overflow-auto whitespace-pre-wrap rounded-[6px] border border-border bg-background p-4 font-sans text-[13px] leading-6 text-foreground">
+                  {toReadableText(d.contentMarkdown)}
+                </pre>
+                <div className="mt-3 flex gap-3">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => void downloadResume(candidateId, d.id, "docx")}
+                  >
+                    Download DOCX
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => void downloadResume(candidateId, d.id, "pdf")}
+                  >
+                    Download PDF
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <h3 className="eyebrow mb-2">Job description</h3>
+                <pre className="max-h-[26rem] overflow-auto whitespace-pre-wrap rounded-[6px] border border-border bg-background p-4 font-sans text-[13px] leading-6 text-muted-foreground">
+                  {d.jobDescription}
+                </pre>
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+/** Render the resume the way it appears in the exported file, not as markdown. */
+function toReadableText(markdown: string): string {
+  return markdown
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => {
+      const trimmed = line.trim();
+      if (!trimmed) return "";
+      const heading = trimmed.match(/^#+\s*(.*)$/);
+      const body = (heading ? heading[1]! : trimmed)
+        .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+        .replace(/\*\*|__|`/g, "");
+      return heading ? `\n${body.toUpperCase()}` : body;
+    })
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 function CheckboxRow({

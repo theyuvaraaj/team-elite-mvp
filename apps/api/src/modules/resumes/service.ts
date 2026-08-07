@@ -17,7 +17,6 @@ export interface OptimizeParams {
   file: UploadedFile;
   jobDescription: string;
   companyName: string;
-  mode?: "rewrite" | "content";
   enhancements?: OptimizeEnhancements;
   optimizer?: ResumeOptimizer;
 }
@@ -35,7 +34,6 @@ export async function optimizeResume(params: OptimizeParams) {
       resumeText,
       jobDescription: params.jobDescription,
       companyName: params.companyName,
-      mode: params.mode,
       enhancements: params.enhancements,
       missingKeywords,
       gaps,
@@ -72,6 +70,12 @@ export async function optimizeResume(params: OptimizeParams) {
   });
 
   return { id: stored.id, atsScore: best.score, scoreBreakdown: best.breakdown };
+}
+
+export async function getResumeDetail(candidateId: string, id: string) {
+  const resume = await repository.findOptimizedResumeDetail(candidateId, id);
+  if (!resume) throw new AppError(404, "RESUME_NOT_FOUND", "Optimized resume not found");
+  return resume;
 }
 
 export function listResumes(candidateId: string) {

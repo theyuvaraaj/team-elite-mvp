@@ -12,6 +12,8 @@ export interface CandidateUser {
 
 export interface EmployeeCandidate {
   id: string;
+  /** Short, memorable reference used in URLs. */
+  code: number;
   email: string | null;
   phone: string | null;
   gender: string | null;

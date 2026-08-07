@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AppShell } from "../../components/layout/AppShell";
 import { AdminNav } from "./AdminNav";
-import { useAuditLogs } from "./adminApi";
+import { useAuditActions, useAuditLogs } from "./adminApi";
 
 function titleCase(value: string) {
   return value
@@ -13,19 +13,80 @@ function titleCase(value: string) {
 
 export function AuditLogPage() {
   const [page, setPage] = useState(1);
-  const audit = useAuditLogs(page, 20);
+  const [search, setSearch] = useState("");
+  const [action, setAction] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const audit = useAuditLogs(page, 20, { search, action, from, to });
+  const actions = useAuditActions();
   const pagination = audit.data?.pagination;
+  const hasFilters = Boolean(search || action || from || to);
+
+  // Any filter change invalidates the current page number.
+  function update<T>(setter: (value: T) => void) {
+    return (value: T) => {
+      setter(value);
+      setPage(1);
+    };
+  }
+
+  const fieldClass =
+    "h-10 rounded-[4px] border border-border bg-surface px-3 text-sm outline-none transition focus:border-ring focus:ring-4 focus:ring-ring/18";
 
   return (
     <AppShell title="Audit log" description="Trace administrative changes and application activity.">
       <AdminNav />
+
+      <div className="mb-4 flex flex-wrap items-end gap-3">
+        <label className="grid gap-1.5">
+          <span className="eyebrow">Search</span>
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => update(setSearch)(e.target.value)}
+            placeholder="Actor, action, or entity…"
+            className={`${fieldClass} w-64`}
+          />
+        </label>
+        <label className="grid gap-1.5">
+          <span className="eyebrow">Action</span>
+          <select
+            value={action}
+            onChange={(e) => update(setAction)(e.target.value)}
+            className={fieldClass}
+          >
+            <option value="">All actions</option>
+            {(actions.data?.actions ?? []).map((a) => (
+              <option key={a} value={a}>{titleCase(a)}</option>
+            ))}
+          </select>
+        </label>
+        <label className="grid gap-1.5">
+          <span className="eyebrow">From</span>
+          <input type="date" value={from} onChange={(e) => update(setFrom)(e.target.value)} className={fieldClass} />
+        </label>
+        <label className="grid gap-1.5">
+          <span className="eyebrow">To</span>
+          <input type="date" value={to} onChange={(e) => update(setTo)(e.target.value)} className={fieldClass} />
+        </label>
+        {hasFilters ? (
+          <button
+            type="button"
+            onClick={() => { setSearch(""); setAction(""); setFrom(""); setTo(""); setPage(1); }}
+            className="h-10 rounded-[4px] border border-border px-3 font-mono text-[11px] uppercase tracking-[0.1em] text-muted-foreground transition hover:border-muted-foreground/45 hover:text-foreground"
+          >
+            Clear
+          </button>
+        ) : null}
+      </div>
+
       <div className="data-table-wrap">
         {audit.isPending ? (
           <div className="grid gap-3 p-5">{[1, 2, 3, 4, 5].map((row) => <div key={row} className="h-14 animate-pulse rounded bg-muted" />)}</div>
         ) : audit.isError ? (
           <div className="p-8 text-center"><p role="alert" className="font-semibold text-danger">Audit activity could not be loaded.</p><button type="button" onClick={() => void audit.refetch()} className="mt-3 text-sm font-semibold text-accent hover:underline">Try again</button></div>
         ) : !audit.data?.auditLogs.length ? (
-          <div className="p-12 text-center"><p className="font-semibold">No audit activity yet</p><p className="mt-2 text-sm text-muted-foreground">Recorded system actions will appear here.</p></div>
+          <div className="p-12 text-center"><p className="font-semibold">{hasFilters ? "No matching activity" : "No audit activity yet"}</p><p className="mt-2 text-sm text-muted-foreground">{hasFilters ? "Try a different search, action, or date range." : "Recorded system actions will appear here."}</p></div>
         ) : (
           <>
             <div className="overflow-x-auto">

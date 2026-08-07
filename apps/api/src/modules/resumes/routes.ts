@@ -5,6 +5,7 @@ import type { AuthUser } from "../../lib/session.js";
 import { requireAuth } from "../../middleware/requireAuth.js";
 import { requireRole } from "../../middleware/requireRole.js";
 import { assertEmployeeAssigned } from "../assignments/service.js";
+import { resolveCandidateId } from "../candidates/repository.js";
 import { parseBody } from "../auth/schemas.js";
 import { renderResumeLatexPdf } from "./latex.js";
 import { parseResumeLines, renderResumeDocx, renderResumePdf } from "./render.js";
@@ -27,12 +28,18 @@ function resumeFileName(
   return `${base}.${format}`;
 }
 
-const idSchema = z.object({ id: z.string().uuid(), resumeId: z.string().uuid().optional() });
+// The candidate segment may be a UUID or the short numeric code.
+const idSchema = z.object({
+  id: z.union([z.string().uuid(), z.string().regex(/^\d{1,9}$/)]),
+  resumeId: z.string().uuid().optional(),
+});
 
-function ids(params: unknown) {
+async function ids(params: unknown) {
   const r = idSchema.safeParse(params);
   if (!r.success) throw new AppError(400, "VALIDATION_ERROR", "Invalid id");
-  return r.data;
+  const id = await resolveCandidateId(r.data.id);
+  if (!id) throw new AppError(404, "CANDIDATE_NOT_FOUND", "Candidate not found");
+  return { ...r.data, id };
 }
 
 async function assertCanAccessCandidate(user: AuthUser, candidateId: string) {
@@ -49,7 +56,7 @@ export async function resumeRoutes(app: FastifyInstance): Promise<void> {
   const staffOnly = [requireAuth, requireRole("ADMIN", "EMPLOYEE")];
 
   app.post("/:id/resumes/optimize", { preHandler: staffOnly }, async (request, reply) => {
-    const { id } = ids(request.params);
+    const { id } = await ids(request.params);
     const user = request.user!;
     await assertCanAccessCandidate(user, id);
 
@@ -70,7 +77,6 @@ export async function resumeRoutes(app: FastifyInstance): Promise<void> {
     const fields = parseBody(optimizeFieldsSchema, {
       jobDescription: (file.fields.jobDescription as { value?: string })?.value,
       companyName: (file.fields.companyName as { value?: string })?.value,
-      mode: (file.fields.mode as { value?: string })?.value,
       alignJobTitles: (file.fields.alignJobTitles as { value?: string })?.value,
       addCertifications: (file.fields.addCertifications as { value?: string })?.value,
       addLocation: (file.fields.addLocation as { value?: string })?.value,
@@ -83,7 +89,6 @@ export async function resumeRoutes(app: FastifyInstance): Promise<void> {
       file: { buffer, filename: file.filename, mimetype: file.mimetype },
       jobDescription: fields.jobDescription,
       companyName: fields.companyName,
-      mode: fields.mode,
       enhancements: {
         alignJobTitles: isEnabled(fields.alignJobTitles),
         addCertifications: isEnabled(fields.addCertifications),
@@ -95,13 +100,19 @@ export async function resumeRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.get("/:id/resumes", { preHandler: staffOnly }, async (request) => {
-    const { id } = ids(request.params);
+    const { id } = await ids(request.params);
     await assertCanAccessCandidate(request.user!, id);
     return { resumes: await service.listResumes(id) };
   });
 
+  app.get("/:id/resumes/:resumeId", { preHandler: staffOnly }, async (request) => {
+    const { id, resumeId } = await ids(request.params);
+    await assertCanAccessCandidate(request.user!, id);
+    return service.getResumeDetail(id, resumeId!);
+  });
+
   app.get("/:id/resumes/:resumeId/download", { preHandler: staffOnly }, async (request, reply) => {
-    const { id, resumeId } = ids(request.params);
+    const { id, resumeId } = await ids(request.params);
     await assertCanAccessCandidate(request.user!, id);
     const q = downloadQuerySchema.safeParse(request.query);
     if (!q.success) throw new AppError(400, "VALIDATION_ERROR", "Invalid format");

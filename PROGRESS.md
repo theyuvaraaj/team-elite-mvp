@@ -74,8 +74,13 @@ Turn a candidate's base resume + a job description into an ATS-tuned resume,
 downloadable as PDF/DOCX, stored under the candidate, staff-only.
 
 Flow: employee finds a job → uploads base resume (drag-drop) → pastes JD →
-company → picks mode → **Optimize** → score card + downloads. Applies manually,
-logs the application via the existing Applications section.
+company → optional enhancements → **Optimize** → score card + downloads.
+Applies manually, logs it via the existing Applications section.
+
+Three opt-in enhancements, all OFF by default: align job titles to the JD, add
+a Certifications section, add a location (from the JD or entered manually).
+There is no "preserve format" mode — parsing only ever yields text, so output
+is always our LaTeX/DOCX template.
 
 Pipeline (`apps/api/src/modules/resumes/`):
 1. `parse.ts` — PDF (`pdf-parse` v2 class API) / DOCX (`mammoth`) / text → plain
@@ -87,9 +92,13 @@ Pipeline (`apps/api/src/modules/resumes/`):
    resume's structure, only tailor wording). Hard rule: never invent
    employers/titles/dates/degrees; skills + framing may be enriched. Per-call
    timeout (SDK + Promise.race backstop) so a stalled call can't hang.
-3. `scorer.ts` — transparent 0–100 heuristic (keywords 40 / structure 20 /
-   parseability 20 / contact 10 / length 10). Big STOPWORD list filters JD
-   prose so pass-1 usually clears the target and breaks early.
+3. `scorer.ts` — transparent 0–100 heuristic modelled on real ATS scanners:
+   keywords 40 (whole-term + JD phrase matching, never substrings), job-title
+   match 10, contact completeness 10 (email/phone/location/LinkedIn),
+   measurable results 10, sections 10, date formats 5, length 5,
+   parseability 10. Scoring runs on the *rendered* text (see
+   `markdownToPlainText`), not the markdown source. Target is 95; the refine
+   loop feeds named `gaps` back into the next pass.
 4. `service.ts` — parse → optimize→score refine loop (keep highest, break at
    target, ≤ passes) → persist markdown in Postgres → audit log.
 5. `render.ts` — canonical markdown → DOCX (`docx`) and pdfkit PDF. Inline
@@ -103,13 +112,26 @@ No blob storage; downloads render on demand.
 
 API (prefix `/api/candidates`, all `ADMIN`|assigned-`EMPLOYEE`, candidate 403):
 - `POST /:id/resumes/optimize` (multipart: `jobDescription`, `companyName`,
-  `mode`, then `file` — **text fields MUST precede the file** in the stream).
+  `alignJobTitles`, `addCertifications`, `addLocation`, `location`, then
+  `file` — **text fields MUST precede the file** in the stream).
 - `GET /:id/resumes` — history.
+- `GET /:id/resumes/:rid` — full record (resume, company, JD, score) for the
+  detail modal.
 - `GET /:id/resumes/:rid/download?format=pdf|docx`.
+
+`:id` accepts **either** the Candidate UUID **or** its short numeric `code`
+(see below), resolved by `resolveCandidateId`.
 
 UI: `apps/web/src/features/employee/ResumeOptimizer.tsx`, mounted on the shared
 candidate-detail page (employee: `/employee/candidates/:id`, admin:
 `/admin/candidates/:id`).
+
+## Candidate short codes
+
+`Candidate.code` is a 4-digit+ sequential reference (Postgres sequence
+`candidate_code_seq`, starts at 1000) so staff can navigate by editing the URL:
+`/employee/candidates/1042` or `/admin/candidates/1042`. Candidate and resume
+routes accept a UUID or a code.
 
 ## Key files
 

@@ -36,6 +36,21 @@ export function listCandidates(employeeId?: string) {
   });
 }
 
+/**
+ * Resolve a route parameter that may be either a Candidate UUID or its short
+ * numeric code, returning the UUID (or null when unknown).
+ */
+export async function resolveCandidateId(idOrCode: string): Promise<string | null> {
+  if (/^\d{1,9}$/.test(idOrCode)) {
+    const found = await prisma.candidate.findUnique({
+      where: { code: Number(idOrCode) },
+      select: { id: true },
+    });
+    return found?.id ?? null;
+  }
+  return idOrCode;
+}
+
 export function findCandidate(id: string) {
   return prisma.candidate.findUnique({
     where: { id },

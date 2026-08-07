@@ -115,11 +115,31 @@ export function useAdminApplications() {
   });
 }
 
-export function useAuditLogs(page = 1, pageSize = 20) {
+export interface AuditFilters {
+  search?: string;
+  action?: string;
+  from?: string;
+  to?: string;
+}
+
+export function useAuditLogs(page = 1, pageSize = 20, filters: AuditFilters = {}) {
+  const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  if (filters.search?.trim()) params.set("search", filters.search.trim());
+  if (filters.action) params.set("action", filters.action);
+  if (filters.from) params.set("from", filters.from);
+  if (filters.to) params.set("to", filters.to);
+  const qs = params.toString();
   return useQuery({
-    queryKey: ["admin", "audit", page, pageSize],
-    queryFn: () =>
-      api<AuditLogPage>(`/api/audit-logs?page=${page}&pageSize=${pageSize}`),
+    queryKey: ["admin", "audit", qs],
+    queryFn: () => api<AuditLogPage>(`/api/audit-logs?${qs}`),
+  });
+}
+
+/** Distinct action values for the filter dropdown. */
+export function useAuditActions() {
+  return useQuery({
+    queryKey: ["admin", "audit", "actions"],
+    queryFn: () => api<{ actions: string[] }>("/api/audit-logs/actions"),
   });
 }
 

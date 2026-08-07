@@ -9,16 +9,24 @@ import {
   createCandidateSchema,
   updateCandidateSchema,
 } from "./schemas.js";
+import { resolveCandidateId } from "./repository.js";
 import * as service from "./service.js";
 
-const idParamsSchema = z.object({ id: z.string().uuid() });
+// Accept either a Candidate UUID or its short numeric code (URL-friendly).
+const idParamsSchema = z.object({
+  id: z.union([z.string().uuid(), z.string().regex(/^\d{1,9}$/)]),
+});
 
-function parseId(params: unknown): string {
+async function parseId(params: unknown): Promise<string> {
   const result = idParamsSchema.safeParse(params);
   if (!result.success) {
     throw new AppError(400, "VALIDATION_ERROR", "Invalid candidate id");
   }
-  return result.data.id;
+  const resolved = await resolveCandidateId(result.data.id);
+  if (!resolved) {
+    throw new AppError(404, "CANDIDATE_NOT_FOUND", "Candidate not found");
+  }
+  return resolved;
 }
 
 function employeeScope(user: AuthUser): string | undefined {
@@ -45,7 +53,7 @@ export async function candidateRoutes(app: FastifyInstance): Promise<void> {
 
   app.get("/:id", { preHandler: adminOrEmployee }, async (request) =>
     service.getCandidate(
-      parseId(request.params),
+      await parseId(request.params),
       employeeScope(request.user!),
     ),
   );
@@ -64,19 +72,19 @@ export async function candidateRoutes(app: FastifyInstance): Promise<void> {
   app.patch("/:id", { preHandler: adminOnly }, async (request) => {
     const body = parseBody(updateCandidateSchema, request.body);
     return service.updateCandidate(
-      parseId(request.params),
+      await parseId(request.params),
       body,
       request.user!.id,
     );
   });
 
   app.post("/:id/disable", { preHandler: adminOnly }, async (request) =>
-    service.disableCandidate(parseId(request.params), request.user!.id),
+    service.disableCandidate(await parseId(request.params), request.user!.id),
   );
 
   app.post("/:id/reset-password", { preHandler: adminOnly }, async (request) =>
     service.resetCandidatePassword(
-      parseId(request.params),
+      await parseId(request.params),
       request.user!.id,
     ),
   );

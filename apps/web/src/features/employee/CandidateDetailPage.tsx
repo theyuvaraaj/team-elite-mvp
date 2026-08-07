@@ -425,7 +425,11 @@ export function CandidateDetailPage() {
   return (
     <AppShell
       title={candidate?.user.name ?? "Candidate"}
-      description="Review candidate details and manage application activity."
+      description={
+        candidate
+          ? `Candidate #${candidate.code} — review details and manage application activity.`
+          : "Review candidate details and manage application activity."
+      }
     >
       <Link
         to={backTo}

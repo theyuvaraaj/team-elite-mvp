@@ -75,6 +75,8 @@ model PasswordToken {
 
 model Candidate {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  /// Short, human-memorable reference (4-5 digits) used in URLs.
+  code         Int      @unique @default(dbgenerated("nextval('candidate_code_seq'::regclass)"))
   userId       String   @unique @map("user_id") @db.Uuid
   email        String?
   phone        String?

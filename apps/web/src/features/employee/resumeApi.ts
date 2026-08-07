@@ -18,6 +18,27 @@ export interface OptimizedResumeSummary {
 }
 export interface OptimizeResult { id: string; atsScore: number; scoreBreakdown: ResumeScoreBreakdown }
 
+export interface OptimizedResumeDetail {
+  id: string;
+  companyName: string;
+  jobDescription: string;
+  contentMarkdown: string;
+  atsScore: number;
+  scoreBreakdown: ResumeScoreBreakdown;
+  createdAt: string;
+  createdBy: { id: string; name: string };
+}
+
+/** Full record for the detail view: optimized resume, company, and the JD. */
+export function useResumeDetail(candidateId: string, resumeId: string | null) {
+  return useQuery({
+    queryKey: ["candidate", candidateId, "resume", resumeId],
+    queryFn: () =>
+      api<OptimizedResumeDetail>(`/api/candidates/${candidateId}/resumes/${resumeId}`),
+    enabled: Boolean(resumeId),
+  });
+}
+
 export function useCandidateResumes(candidateId?: string) {
   return useQuery({
     queryKey: ["candidate", candidateId, "resumes"],
@@ -33,7 +54,6 @@ export function useOptimizeResume(candidateId: string) {
       file: File;
       jobDescription: string;
       companyName: string;
-      mode: "rewrite" | "content";
       alignJobTitles: boolean;
       addCertifications: boolean;
       addLocation: boolean;
@@ -45,7 +65,6 @@ export function useOptimizeResume(candidateId: string) {
       // in the multipart stream.
       form.append("jobDescription", input.jobDescription);
       form.append("companyName", input.companyName);
-      form.append("mode", input.mode);
       form.append("alignJobTitles", String(input.alignJobTitles));
       form.append("addCertifications", String(input.addCertifications));
       form.append("addLocation", String(input.addLocation));

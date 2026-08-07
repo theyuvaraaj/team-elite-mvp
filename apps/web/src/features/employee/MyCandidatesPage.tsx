@@ -54,6 +54,7 @@ export function MyCandidatesPage() {
     return (candidatesQuery.data?.candidates ?? []).filter((candidate) =>
       [
         candidate.user.name,
+        String(candidate.code),
         candidate.user.email,
         candidate.primaryRole,
         candidate.phone,
@@ -133,7 +134,7 @@ export function MyCandidatesPage() {
                 {candidates.map((candidate) => (
                   <li key={candidate.id}>
                     <Link
-                      to={`/employee/candidates/${candidate.id}`}
+                      to={`/employee/candidates/${candidate.code}`}
                       className="group flex items-center gap-4 px-5 py-4 transition hover:bg-muted/40"
                     >
                       <span className="grid size-11 shrink-0 place-items-center rounded-[4px] bg-accent text-sm font-bold text-accent-foreground font-mono">
@@ -145,8 +146,13 @@ export function MyCandidatesPage() {
                           .toUpperCase()}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate font-semibold">
-                          {candidate.user.name}
+                        <span className="flex items-baseline gap-2">
+                          <span className="truncate font-semibold">
+                            {candidate.user.name}
+                          </span>
+                          <span className="font-mono text-[11px] text-muted-foreground">
+                            #{candidate.code}
+                          </span>
                         </span>
                         <span className="mt-1 block truncate text-sm text-muted-foreground">
                           {[candidate.primaryRole, candidate.experience, candidate.phone]

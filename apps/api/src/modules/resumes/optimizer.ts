@@ -2,8 +2,6 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { config } from "../../config.js";
 import { AppError } from "../../lib/errors.js";
 
-export type OptimizeMode = "rewrite" | "content";
-
 /** Opt-in enhancements. All default OFF — the caller must ask for them. */
 export interface OptimizeEnhancements {
   /** Rewrite job titles to mirror the JD's target title. */
@@ -20,7 +18,6 @@ export interface OptimizeInput {
   resumeText: string;
   jobDescription: string;
   companyName: string;
-  mode?: OptimizeMode;
   enhancements?: OptimizeEnhancements;
   missingKeywords?: string[];
   /** Specific, scored gaps from the previous pass. */
@@ -89,26 +86,16 @@ export function buildPrompt(input: OptimizeInput): string {
     );
   }
   const missing = feedback.join("\n");
-  const strategy =
-    input.mode === "content"
-      ? [
-          "You are an expert resume editor. TAILOR the BASE RESUME to the JOB DESCRIPTION at " + input.companyName + " while PRESERVING the candidate's existing resume structure.",
-          "Rules:",
-          "- Keep the SAME sections, in the SAME order, with the SAME headings the base resume already uses. Do not add, remove, merge, or reorder sections.",
-          "- Only rewrite the wording of existing bullets and the summary to emphasize the skills and terminology the job description asks for.",
-          "- You may sharpen bullets and fold in job-relevant skills the candidate plausibly has, but keep the overall shape and layout close to the original.",
-          "- Do not invent employers, employment dates, or degrees that contradict the base resume.",
-        ]
-      : [
-          "You are an elite resume writer. Rewrite the BASE RESUME into a compelling, ATS-optimized resume that positions the candidate as a strong, obvious match for the JOB DESCRIPTION at " + input.companyName + ". Be confident and aggressive in tailoring to maximize interview callbacks.",
-          "Rules:",
-          "- Use standard sections: Summary, Skills, Experience, Education. Add Projects only if the base resume has them; add Certifications only if the base resume has them or an enhancement below requests it.",
-          "- Skills: present the technologies, tools, and competencies the job description asks for as the candidate's own; you MAY add job-relevant skills the base resume does not explicitly mention.",
-          "- Experience: KEEP the candidate's real employers, titles, and dates, but rewrite every bullet into specific, confident, metric-driven achievements demonstrating the job's required skills.",
-          "- Summary: 2-3 sentences framing the candidate as an ideal fit for this exact role.",
-          "- Write natural, professional prose — never a comma-separated keyword dump as a sentence.",
-          "- Do not invent employers, employment dates, or degrees that contradict the base resume; everything else — skills, tools, framing and depth of experience — may be enriched.",
-        ];
+  const strategy = [
+    "You are an elite resume writer. Rewrite the BASE RESUME into a compelling, ATS-optimized resume that positions the candidate as a strong, obvious match for the JOB DESCRIPTION at " + input.companyName + ". Be confident and aggressive in tailoring to maximize interview callbacks.",
+    "Rules:",
+    "- Use standard sections: Summary, Skills, Experience, Education. Add Projects only if the base resume has them; add Certifications only if the base resume has them or an enhancement below requests it.",
+    "- Skills: present the technologies, tools, and competencies the job description asks for as the candidate's own; you MAY add job-relevant skills the base resume does not explicitly mention.",
+    "- Experience: KEEP the candidate's real employers, titles, and dates, but rewrite every bullet into specific, confident, metric-driven achievements demonstrating the job's required skills.",
+    "- Summary: 2-3 sentences framing the candidate as an ideal fit for this exact role.",
+    "- Write natural, professional prose — never a comma-separated keyword dump as a sentence.",
+    "- Do not invent employers, employment dates, or degrees that contradict the base resume; everything else — skills, tools, framing and depth of experience — may be enriched.",
+  ];
   return [
     ...strategy,
     ...ATS_RULES,

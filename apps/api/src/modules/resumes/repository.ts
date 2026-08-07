@@ -31,6 +31,22 @@ export function listOptimizedResumes(candidateId: string) {
   });
 }
 
+export function findOptimizedResumeDetail(candidateId: string, id: string) {
+  return prisma.optimizedResume.findFirst({
+    where: { id, candidateId },
+    select: {
+      id: true,
+      companyName: true,
+      jobDescription: true,
+      contentMarkdown: true,
+      atsScore: true,
+      scoreBreakdown: true,
+      createdAt: true,
+      createdBy: { select: { id: true, name: true } },
+    },
+  });
+}
+
 export function findOptimizedResume(candidateId: string, id: string) {
   return prisma.optimizedResume.findFirst({
     where: { id, candidateId },
