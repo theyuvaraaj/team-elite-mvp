@@ -9,7 +9,7 @@ import {
 import { parseResumeFile, type UploadedFile } from "./parse.js";
 import * as repository from "./repository.js";
 import { markdownToPlainText } from "./render.js";
-import { scoreResume, type ScoreBreakdown } from "./scorer.js";
+import { extractJobTitle, scoreResume, type ScoreBreakdown } from "./scorer.js";
 
 export interface OptimizeParams {
   candidateId: string;
@@ -25,6 +25,7 @@ export interface OptimizeParams {
 export async function optimizeResume(params: OptimizeParams) {
   const resumeText = await parseResumeFile(params.file);
   const optimizer = params.optimizer ?? getOptimizer();
+  const inferredJobTitle = extractJobTitle(params.jobDescription);
 
   let best: { markdown: string; score: number; breakdown: ScoreBreakdown } | null = null;
   let missingKeywords: string[] | undefined;
@@ -36,6 +37,7 @@ export async function optimizeResume(params: OptimizeParams) {
       jobDescription: params.jobDescription,
       companyName: params.companyName,
       jobTitle: params.jobTitle,
+      inferredJobTitle,
       enhancements: params.enhancements,
       missingKeywords,
       gaps,

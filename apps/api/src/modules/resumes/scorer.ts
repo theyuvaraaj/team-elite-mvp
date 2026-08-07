@@ -272,21 +272,30 @@ export function scoreResume(
 
   // --- Job title match (10) --------------------------------------------------
   // Real ATS scanners weight the target title heavily.
-  const expectedTitle = options.jobTitle?.trim() || extractJobTitle(jobDescription);
+  const inferredTitle = extractJobTitle(jobDescription);
+  const suppliedTitle = options.jobTitle?.trim() || null;
+  // Grade against both; a scanner uses the posting's own title, so the weaker
+  // of the two is the honest number.
+  const titleCandidates = [suppliedTitle, inferredTitle].filter(Boolean) as string[];
+  const expectedTitle = suppliedTitle ?? inferredTitle;
   let titleEarned = 10;
-  if (expectedTitle) {
-    // Full marks only when every significant word of the title is present —
-    // scanners look for the whole title, not just the noun.
-    const normalizedTitle = normalize(expectedTitle);
-    const titleWords = normalizedTitle.split(/\s+/).filter((w) => w.length > 2);
-    if (containsTitlePhrase(text, normalizedTitle)) {
-      titleEarned = 10;
-    } else {
-      // All the words but not as one phrase still misses a scanner's title match.
-      const hit = titleWords.filter((w) => containsTerm(text, w));
-      titleEarned = titleWords.length ? Math.min(6, Math.round((hit.length / titleWords.length) * 6)) : 10;
+  if (titleCandidates.length) {
+    // Full marks need the title as one contiguous phrase — scanners look for
+    // the whole title, not its words scattered around.
+    const scoreTitle = (candidate: string): number => {
+      const normalizedTitle = normalize(candidate);
+      if (containsTitlePhrase(text, normalizedTitle)) return 10;
+      const words = normalizedTitle.split(/\s+/).filter((w) => w.length > 2);
+      const hit = words.filter((w) => containsTerm(text, w));
+      return words.length ? Math.min(6, Math.round((hit.length / words.length) * 6)) : 10;
+    };
+    const weakest = titleCandidates
+      .map((title) => ({ title, points: scoreTitle(title) }))
+      .reduce((a, b) => (b.points < a.points ? b : a));
+    titleEarned = weakest.points;
+    if (titleEarned < 10) {
       gaps.push(
-        `Use the exact job title "${expectedTitle}" as one contiguous phrase in the summary's first sentence AND as the most recent role's title`,
+        `Use the exact job title "${weakest.title}" as one contiguous phrase in the summary's first sentence AND as the most recent role's title`,
       );
     }
   }
@@ -300,13 +309,12 @@ export function scoreResume(
   // "City, ST" / "City, Country" there avoids matching prose like
   // "BS Computer Science, University of Texas".
   const header = resumeText.split("\n").slice(0, 4).join("\n");
-  const hasLocation =
-    /\b[A-Z][a-zA-Z.\-]+,\s*([A-Z]{2}\b|[A-Z][a-zA-Z]+)/.test(header) ||
-    /\b(remote|hybrid)\b/i.test(header);
+  // A real "City, Region" — scanners explicitly reject "Remote" as an address.
+  const hasLocation = /\b[A-Z][a-zA-Z.\-]+,\s*([A-Z]{2}\b|[A-Z][a-zA-Z]+)/.test(header);
   const hasLinkedIn = /linkedin\.com\/in\/|linkedin:/i.test(resumeText);
   if (!hasEmail) missingContact.push("email");
   if (!hasPhone) missingContact.push("phone");
-  if (!hasLocation) missingContact.push("location");
+  if (!hasLocation) missingContact.push(/\bremote\b/i.test(header) ? "a real city (\"Remote\" is not an address)" : "location");
   if (!hasLinkedIn) missingContact.push("LinkedIn");
   const contactEarned =
     (hasEmail ? 3 : 0) + (hasPhone ? 3 : 0) + (hasLocation ? 2 : 0) + (hasLinkedIn ? 2 : 0);

@@ -19,6 +19,8 @@ export interface OptimizeInput {
   jobDescription: string;
   companyName: string;
   jobTitle?: string | null;
+  /** Title inferred from the JD, used when the caller supplied none. */
+  inferredJobTitle?: string | null;
   enhancements?: OptimizeEnhancements;
   missingKeywords?: string[];
   /** Specific, scored gaps from the previous pass. */
@@ -70,14 +72,15 @@ function enhancementRules(input: OptimizeInput): string[] {
     rules.push(
       e.location
         ? `- LOCATION (explicitly enabled): use exactly "${e.location}" as the candidate's location in the contact line.`
-        : "- LOCATION (explicitly enabled): infer the role's location from the job description and use it as the candidate's location in the contact line. If the JD names no location, use 'Remote'.",
+        : "- LOCATION (explicitly enabled): use a real 'City, Region' location — prefer the one already in the base resume, otherwise the role's location from the job description. NEVER write 'Remote' as the location; scanners reject it as an address.",
     );
   }
   return rules.length ? ["Requested enhancements:", ...rules] : [];
 }
 
 export function buildPrompt(input: OptimizeInput): string {
-  const targetTitle = input.jobTitle?.trim();
+  // Always hand the model a concrete title; the ATS rules reference it.
+  const targetTitle = input.jobTitle?.trim() || input.inferredJobTitle?.trim();
   const feedback: string[] = [];
   if (input.gaps?.length) {
     feedback.push(
