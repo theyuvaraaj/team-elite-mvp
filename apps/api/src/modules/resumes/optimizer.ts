@@ -18,6 +18,7 @@ export interface OptimizeInput {
   resumeText: string;
   jobDescription: string;
   companyName: string;
+  jobTitle?: string | null;
   enhancements?: OptimizeEnhancements;
   missingKeywords?: string[];
   /** Specific, scored gaps from the previous pass. */
@@ -38,7 +39,7 @@ const FORMAT_RULES = [
  */
 const ATS_RULES = [
   "ATS scoring requirements (these are graded — satisfy every one):",
-  "- TARGET TITLE: identify the job title in the job description and use that exact title in the Summary's first sentence and as the title of the most recent role (when it is a fair description of the work).",
+  "- TARGET TITLE: use the target title EXACTLY as given, as one contiguous phrase, in the Summary's first sentence AND as the most recent role's title. Do not reword it (no swapping ',' for 'in', no reordering).",
   "- KEYWORDS: reuse the job description's exact wording for skills, including multi-word phrases (e.g. 'payment systems', 'CI/CD pipelines', 'distributed systems'). Match the JD's spelling and casing conventions rather than synonyms.",
   "- CONTACT LINE: one line containing email, phone, city + state/country, and a LinkedIn URL (linkedin.com/in/...), separated by ' | '. Reuse whatever the base resume provides; keep any placeholder the base resume already had.",
   "- METRICS: at least 70% of experience bullets must contain a concrete number tied to a unit — a percentage, currency amount, count of users/requests/engineers, or a time saved. Never write a bare year as the only number.",
@@ -46,6 +47,9 @@ const ATS_RULES = [
   "- DATES: every role needs an explicit range like 'Jan 2021 - Present' or '2018 - 2020'.",
   "- LENGTH: 600-950 words total. Expand thin experience with substantive, believable achievement bullets rather than padding with adjectives.",
   "- Plain ASCII only: no emoji, no icon glyphs, no decorative separators.",
+  "- SOFT SKILLS: evidence the soft skills the job description names (collaboration, mentoring, ownership, communication, continuous improvement, stakeholder management) inside achievement bullets — never as a bare list.",
+  "- NO FIRST PERSON: never use 'I', 'me', or 'my'. Write in the implied-subject resume voice ('Led...', 'Built...', 'Owned...').",
+  "- Ignore the job description's legal, EEO, benefits, privacy, and company-values boilerplate. Never echo phrases like 'privacy notice', 'equal opportunity', or 'sustainability' into the resume.",
 ];
 
 function enhancementRules(input: OptimizeInput): string[] {
@@ -73,6 +77,7 @@ function enhancementRules(input: OptimizeInput): string[] {
 }
 
 export function buildPrompt(input: OptimizeInput): string {
+  const targetTitle = input.jobTitle?.trim();
   const feedback: string[] = [];
   if (input.gaps?.length) {
     feedback.push(
@@ -98,6 +103,7 @@ export function buildPrompt(input: OptimizeInput): string {
   ];
   return [
     ...strategy,
+    ...(targetTitle ? [`TARGET JOB TITLE (use verbatim): ${targetTitle}`] : []),
     ...ATS_RULES,
     ...enhancementRules(input),
     ...FORMAT_RULES,
@@ -111,8 +117,46 @@ export function buildPrompt(input: OptimizeInput): string {
   ].join("\n");
 }
 
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+
+function isRetryable(error: unknown): boolean {
+  // generate() wraps upstream failures in AppError, so check that first.
+  if (error instanceof AppError) return RETRYABLE_STATUS.has(error.statusCode);
+  const status = (error as { status?: number })?.status;
+  if (status && RETRYABLE_STATUS.has(status)) return true;
+  const message = String((error as { message?: string })?.message ?? "");
+  return /50\d|unavailable|high demand|overloaded|rate limit|try again/i.test(message);
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export class GeminiOptimizer implements ResumeOptimizer {
   async optimize(input: OptimizeInput): Promise<string> {
+    const attempts = config.RESUME_MAX_RETRIES + 1;
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      // Last attempt tries the fallback model — the primary is often the one
+      // under load.
+      const model =
+        attempt === attempts && config.RESUME_FALLBACK_MODEL
+          ? config.RESUME_FALLBACK_MODEL
+          : config.RESUME_OPTIMIZE_MODEL;
+      try {
+        return await this.generate(input, model);
+      } catch (error) {
+        lastError = error;
+        // Gemini's free tier throws transient 503 "high demand" often enough
+        // that a single failure should not surface to the user.
+        const retryable = !(error instanceof AppError && error.code === "OPTIMIZER_UNCONFIGURED")
+          && isRetryable(error);
+        if (!retryable || attempt === attempts) break;
+        await sleep(attempt * 1500);
+      }
+    }
+    throw lastError;
+  }
+
+  private async generate(input: OptimizeInput, modelName: string): Promise<string> {
     if (!config.GEMINI_API_KEY) {
       throw new AppError(503, "OPTIMIZER_UNCONFIGURED", "Resume optimization is not configured (missing GEMINI_API_KEY)");
     }
@@ -120,7 +164,7 @@ export class GeminiOptimizer implements ResumeOptimizer {
     const client = new GoogleGenerativeAI(config.GEMINI_API_KEY);
     // SDK-level timeout aborts the underlying request.
     const model = client.getGenerativeModel(
-      { model: config.RESUME_OPTIMIZE_MODEL },
+      { model: modelName },
       { timeout: timeoutMs },
     );
     try {
@@ -153,7 +197,14 @@ export class GeminiOptimizer implements ResumeOptimizer {
       }
       // Keep the upstream reason visible; a swallowed cause makes this
       // impossible to diagnose from a generic 502.
-      console.error("[optimizer] Gemini call failed:", name, status ?? "", message);
+      console.error("[optimizer] Gemini call failed:", modelName, name, status ?? "", message);
+      if (
+        (status && status >= 500) ||
+        /unavailable|high demand|overloaded|try again/i.test(message)
+      ) {
+        // Retryable upstream capacity problem, not a bad request.
+        throw new AppError(503, "OPTIMIZER_BUSY", "AI service is busy, try again shortly");
+      }
       throw new AppError(502, "OPTIMIZER_FAILED", "Resume optimization failed");
     }
   }

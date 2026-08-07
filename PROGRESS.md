@@ -66,7 +66,10 @@ Resume optimizer:
   `gemini-2.5-flash`** — it 404s for new API accounts.
 - `RESUME_MAX_REFINE_PASSES` (3), `RESUME_SCORE_TARGET` (95),
   `RESUME_MAX_UPLOAD_MB` (5), `RESUME_REQUEST_TIMEOUT_MS` (55000),
+  `RESUME_MAX_RETRIES` (2), `RESUME_FALLBACK_MODEL` (`gemini-3.5-flash`),
   `TECTONIC_BIN` (`tectonic`), `RESUME_LATEX_TIMEOUT_MS` (45000).
+  The free tier returns transient 503 "high demand" regularly; retries with
+  backoff plus the fallback model absorb it.
 
 ## Feature: Resume optimizer (Employees + Admins)
 
@@ -76,6 +79,9 @@ downloadable as PDF/DOCX, stored under the candidate, staff-only.
 Flow: employee finds a job → uploads base resume (drag-drop) → pastes JD →
 company → optional enhancements → **Optimize** → score card + downloads.
 Applies manually, logs it via the existing Applications section.
+
+Supply the posting's **exact job title** when known — scanners match the whole
+title, and it is the largest factor after keywords.
 
 Three opt-in enhancements, all OFF by default: align job titles to the JD, add
 a Certifications section, add a location (from the JD or entered manually).
@@ -92,13 +98,16 @@ Pipeline (`apps/api/src/modules/resumes/`):
    dates, or degrees; skills, titles (when enabled), and framing may be
    enriched. Per-call timeout (SDK + Promise.race backstop) so a stalled call
    can't hang.
-3. `scorer.ts` — transparent 0–100 heuristic modelled on real ATS scanners:
-   keywords 40 (whole-term + JD phrase matching, never substrings), job-title
-   match 10, contact completeness 10 (email/phone/location/LinkedIn),
-   measurable results 10, sections 10, date formats 5, length 5,
-   parseability 10. Scoring runs on the *rendered* text (see
-   `markdownToPlainText`), not the markdown source. Target is 95; the refine
-   loop feeds named `gaps` back into the next pass.
+3. `scorer.ts` — transparent 0–100 heuristic modelled on real ATS scanners
+   (calibrated against Jobscan): keywords 35 (whole-term + JD phrase matching,
+   never substrings), job-title 10 (**contiguous** phrase match; an explicit
+   posting title beats the inferred one), contact 10
+   (email/phone/location/LinkedIn), measurable results 10, soft skills 10 (only
+   those the JD names), sections 8, dates 5, length 4, parseability 8.
+   `stripBoilerplate` removes EEO/privacy/benefits prose first — otherwise the
+   loop demands junk like "gender" and the optimizer writes it into the resume.
+   Scoring runs on the *rendered* text (`markdownToPlainText`), not the markdown
+   source. Target 95; the loop feeds named `gaps` back into the next pass.
 4. `service.ts` — parse → optimize→score refine loop (keep highest, break at
    target, ≤ passes) → persist markdown in Postgres → audit log.
 5. `render.ts` — canonical markdown → DOCX (`docx`) and pdfkit PDF. Inline
@@ -145,7 +154,7 @@ routes accept a UUID or a code.
 ## Testing
 
 ```bash
-pnpm --filter @team-elite/api test    # 60 tests (Vitest, needs postgres up)
+pnpm --filter @team-elite/api test    # 67 tests (Vitest, needs postgres up)
 pnpm --filter @team-elite/web exec vitest run   # 17 tests
 pnpm --filter @team-elite/api exec tsc --noEmit
 pnpm --filter @team-elite/web exec tsc -b

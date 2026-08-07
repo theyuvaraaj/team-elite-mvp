@@ -4,6 +4,7 @@ export interface ScoreBreakdown {
   jobTitle: ScoreComponent & { expected: string | null };
   contact: ScoreComponent & { missing: string[] };
   measurable: ScoreComponent;
+  softSkills: ScoreComponent & { missing: string[] };
   structure: ScoreComponent & { missing: string[] };
   dates: ScoreComponent;
   length: ScoreComponent & { words: number };
@@ -39,7 +40,72 @@ const STOPWORDS = new Set([
   "every","both","you'll","we're","we'll","us","per","via","etc.","such","many",
   "including","ensuring","while","would","could","may","might","get","make","take",
   "like","one","two","three","first","second","end","full","time","level","based",
+  "essential","desirable","mandatory","key","various","several","etc","able",
+  "willing","comfortable","familiar","familiarity","understanding","exposure",
+  "bonus","advantage","asset","ideally","plus","min","max","least",
 ]);
+
+/**
+ * Legal / EEO / benefits boilerplate. Job descriptions end with pages of this,
+ * and treating it as required keywords makes the optimizer stuff nonsense like
+ * "privacy notice" or "gender" into the resume.
+ */
+const BOILERPLATE_MARKERS = [
+  "equal opportunit", "equal employment", "eeo", "affirmative action",
+  "privacy notice", "privacy policy", "data protection notice",
+  "reasonable accommodation", "accommodation request", "disabilit",
+  "protected veteran", "veteran status", "regardless of race", "race, colour",
+  "race, color", "color, religion", "colour, religion", "religion, sex",
+  "gender identity", "gender, ", "sexual orientation", "national origin",
+  "marital status",
+  "background check", "e-verify", "recruitment agency", "agency partner",
+  "sustainability", "volunteering", "charitable", "we are proud to be",
+  "diversity, equity", "dei ", "benefits package", "compensation range",
+  "salary range", "healthcare benefits", "annual wellness", "paid time off",
+];
+
+/** Residual boilerplate words that survive sentence filtering. */
+const BOILERPLATE_WORDS = new Set([
+  "purpose", "values", "culture", "inclusive", "inclusion", "diverse",
+  "diversity", "belonging", "community", "communities", "society", "sustainable",
+  "integrity", "partnership", "excellence", "innovation", "colleagues",
+  "employer", "employment", "applicant", "applicants", "applications",
+  "qualifications", "consideration", "compliance", "law", "laws", "legal",
+  "notice", "policy", "policies", "information", "opportunities", "opportunity",
+  "gender", "volunteering", "sustainability", "wellbeing", "wellness",
+  "benefits", "salary", "compensation", "perks", "holidays", "leave",
+  "organisation", "organization", "worldwide", "colleague",
+]);
+
+/**
+ * Soft skills — Jobscan scores these as their own category. Each entry lists
+ * accepted surface forms; the first is the canonical label.
+ */
+const SOFT_SKILLS: string[][] = [
+  ["communication", "communicate", "communicating"],
+  ["collaboration", "collaborate", "collaborating", "cross-functional", "partner with"],
+  ["leadership", "lead", "leading", "led"],
+  ["mentoring", "mentor", "mentored", "coaching", "coach"],
+  ["problem solving", "problem-solving", "troubleshooting", "root cause"],
+  ["ownership", "owned", "accountable", "accountability", "end-to-end ownership"],
+  ["continuous improvement", "continuous learning", "learning mindset"],
+  ["stakeholder management", "stakeholders", "stakeholder"],
+  ["adaptability", "adaptable", "flexible", "agile mindset"],
+  ["teamwork", "team player", "cross-team"],
+  ["attention to detail", "detail-oriented", "meticulous"],
+  ["time management", "prioritization", "prioritise", "prioritize"],
+];
+
+/** Drop legal/EEO/benefits prose so it never becomes a "required" keyword. */
+export function stripBoilerplate(jobDescription: string): string {
+  return jobDescription
+    .split(/\n+|(?<=[.!?])\s+/)
+    .filter((chunk) => {
+      const lower = chunk.toLowerCase();
+      return !BOILERPLATE_MARKERS.some((marker) => lower.includes(marker));
+    })
+    .join("\n");
+}
 
 /** Words that indicate a role/title noun, used to find the JD's job title. */
 const TITLE_NOUNS = [
@@ -68,7 +134,12 @@ function tokenize(text: string): string[] {
 }
 
 function isContentWord(token: string): boolean {
-  return token.length >= 3 && !STOPWORDS.has(token) && !/^\d+$/.test(token);
+  return (
+    token.length >= 3 &&
+    !STOPWORDS.has(token) &&
+    !BOILERPLATE_WORDS.has(token) &&
+    !/^\d+$/.test(token)
+  );
 }
 
 function escapeRegex(term: string): string {
@@ -90,7 +161,7 @@ export function containsTerm(haystack: string, term: string): boolean {
  * real ATS scanners match them as units.
  */
 export function extractKeywords(jobDescription: string): string[] {
-  const normalized = normalize(jobDescription);
+  const normalized = normalize(stripBoilerplate(jobDescription));
   const counts = new Map<string, number>();
   const bump = (term: string, by = 1) =>
     counts.set(term, (counts.get(term) ?? 0) + by);
@@ -113,13 +184,30 @@ export function extractKeywords(jobDescription: string): string[] {
     .map(([term]) => term);
 }
 
-/** Best-guess job title from the JD, e.g. "senior payments engineer". */
+/**
+ * Best-guess job title from the JD. Handles the qualifier forms real postings
+ * use — "Senior Engineer, Site Reliability" and "Senior Engineer in Site
+ * Reliability" — because ATS scanners want the title matched as a whole.
+ */
 export function extractJobTitle(jobDescription: string): string | null {
-  const tokens = tokenize(jobDescription);
+  const cleaned = stripBoilerplate(jobDescription);
+  // Prefer a title that appears with its qualifier, e.g. "Engineer, Site Reliability".
+  const qualified = normalize(cleaned).match(
+    new RegExp(
+      `((?:[a-z-]+\\s+){0,3}(?:${TITLE_NOUNS.join("|")}))\\s*(?:,|\\bin\\b|\\bof\\b|-)\\s*((?:[a-z-]+\\s*){1,3})`,
+      "i",
+    ),
+  );
+  if (qualified) {
+    const head = qualified[1]!.trim().split(/\s+/).filter((w) => TITLE_MODIFIERS.includes(w) || TITLE_NOUNS.includes(w));
+    const tail = qualified[2]!.trim().split(/\s+/).filter((w) => TITLE_MODIFIERS.includes(w) || TITLE_NOUNS.includes(w));
+    if (head.length && tail.length) return [...head, ...tail].join(" ");
+  }
+
+  const tokens = tokenize(cleaned);
   for (let i = 0; i < tokens.length; i++) {
     if (!TITLE_NOUNS.includes(tokens[i]!)) continue;
     const parts = [tokens[i]!];
-    // Walk backwards over modifiers to capture the full title.
     for (let j = i - 1; j >= 0 && i - j <= 3; j--) {
       const prev = tokens[j]!;
       if (TITLE_MODIFIERS.includes(prev) || TITLE_NOUNS.includes(prev)) {
@@ -148,7 +236,24 @@ function bulletLines(resumeText: string): string[] {
     .filter((l) => /^([-*•]|\d+\.)\s+/.test(l));
 }
 
-export function scoreResume(resumeText: string, jobDescription: string): ResumeScore {
+export interface ScoreOptions {
+  /** Exact posting title, when the user supplied one. */
+  jobTitle?: string | null;
+}
+
+/** Contiguous title match, tolerating "," / "in" / "of" between the parts. */
+function containsTitlePhrase(haystack: string, title: string): boolean {
+  const words = title.split(/\s+/).filter(Boolean).map(escapeRegex);
+  if (!words.length) return false;
+  const joiner = "[\\s,\\-–]*(?:in|of|for)?[\\s,\\-–]*";
+  return new RegExp(`(?<![a-z0-9])${words.join(joiner)}`, "i").test(haystack);
+}
+
+export function scoreResume(
+  resumeText: string,
+  jobDescription: string,
+  options: ScoreOptions = {},
+): ResumeScore {
   const text = normalize(resumeText);
   const gaps: string[] = [];
 
@@ -162,22 +267,27 @@ export function scoreResume(resumeText: string, jobDescription: string): ResumeS
   const present = salient.filter((t) => containsTerm(text, t));
   const missing = salient.filter((t) => !containsTerm(text, t));
   const keywordEarned =
-    salient.length === 0 ? 40 : Math.round((present.length / salient.length) * 40);
+    salient.length === 0 ? 35 : Math.round((present.length / salient.length) * 35);
   if (missing.length) gaps.push(`Missing job-description terms: ${missing.slice(0, 12).join(", ")}`);
 
   // --- Job title match (10) --------------------------------------------------
   // Real ATS scanners weight the target title heavily.
-  const expectedTitle = extractJobTitle(jobDescription);
+  const expectedTitle = options.jobTitle?.trim() || extractJobTitle(jobDescription);
   let titleEarned = 10;
   if (expectedTitle) {
-    const titleWords = expectedTitle.split(" ");
-    const core = titleWords[titleWords.length - 1]!;
-    if (containsTerm(text, expectedTitle)) titleEarned = 10;
-    else if (containsTerm(text, titleWords.slice(-2).join(" "))) titleEarned = 7;
-    else if (containsTerm(text, core)) titleEarned = 4;
-    else titleEarned = 0;
-    if (titleEarned < 10) {
-      gaps.push(`Use the target job title "${expectedTitle}" in the summary and/or most recent role`);
+    // Full marks only when every significant word of the title is present —
+    // scanners look for the whole title, not just the noun.
+    const normalizedTitle = normalize(expectedTitle);
+    const titleWords = normalizedTitle.split(/\s+/).filter((w) => w.length > 2);
+    if (containsTitlePhrase(text, normalizedTitle)) {
+      titleEarned = 10;
+    } else {
+      // All the words but not as one phrase still misses a scanner's title match.
+      const hit = titleWords.filter((w) => containsTerm(text, w));
+      titleEarned = titleWords.length ? Math.min(6, Math.round((hit.length / titleWords.length) * 6)) : 10;
+      gaps.push(
+        `Use the exact job title "${expectedTitle}" as one contiguous phrase in the summary's first sentence AND as the most recent role's title`,
+      );
     }
   }
 
@@ -217,11 +327,24 @@ export function scoreResume(resumeText: string, jobDescription: string): ResumeS
     gaps.push("Add concrete metrics (%, $, counts, time saved) to more experience bullets");
   }
 
-  // --- Section structure (10) ----------------------------------------------
+  // --- Soft skills (10) -----------------------------------------------------
+  // Only the soft skills the JD actually asks for are graded.
+  const jdText = normalize(stripBoilerplate(jobDescription));
+  const wantedSoft = SOFT_SKILLS.filter((forms) => forms.some((f) => jdText.includes(f)));
+  const softPresent = wantedSoft.filter((forms) => forms.some((f) => text.includes(f)));
+  const missingSoft = wantedSoft
+    .filter((forms) => !forms.some((f) => text.includes(f)))
+    .map((forms) => forms[0]!);
+  const softEarned = wantedSoft.length === 0 ? 10 : Math.round((softPresent.length / wantedSoft.length) * 10);
+  if (missingSoft.length) {
+    gaps.push(`Demonstrate these soft skills the job asks for: ${missingSoft.join(", ")}`);
+  }
+
+  // --- Section structure (8) ----------------------------------------------
   const missingSections = SECTIONS.filter((s) => !s.patterns.some((p) => p.test(resumeText))).map(
     (s) => s.name,
   );
-  const structureEarned = Math.round(((SECTIONS.length - missingSections.length) / SECTIONS.length) * 10);
+  const structureEarned = Math.round(((SECTIONS.length - missingSections.length) / SECTIONS.length) * 8);
   if (missingSections.length) gaps.push(`Add standard sections: ${missingSections.join(", ")}`);
 
   // --- Date formatting (5) --------------------------------------------------
@@ -235,26 +358,27 @@ export function scoreResume(resumeText: string, jobDescription: string): ResumeS
   const wordCount = resumeText.trim().split(/\s+/).filter(Boolean).length;
   // 400-1000 covers a focused one-pager through a full senior two-pager.
   const lengthEarned =
-    wordCount >= 400 && wordCount <= 1000 ? 5 : wordCount >= 250 && wordCount <= 1200 ? 3 : 1;
-  if (lengthEarned < 5) gaps.push(`Target 400-1000 words (currently ${wordCount})`);
+    wordCount >= 400 && wordCount <= 1000 ? 4 : wordCount >= 250 && wordCount <= 1200 ? 2 : 1;
+  if (lengthEarned < 4) gaps.push(`Target 400-1000 words (currently ${wordCount})`);
 
   // --- Parseability (10) ---------------------------------------------------
   const issues: string[] = [];
   if (/\t{2,}|\|\s*\||<img|<table/i.test(resumeText)) issues.push("table/column layout");
   if (/[•]\s*[•]|[-]/.test(resumeText)) issues.push("non-standard glyphs");
   if (/\*\*|__|`/.test(resumeText)) issues.push("unrendered markdown markers");
-  const parseEarned = Math.max(0, 10 - issues.length * 4);
+  const parseEarned = Math.max(0, 8 - issues.length * 4);
   if (issues.length) gaps.push(`Fix parseability: ${issues.join(", ")}`);
 
   const breakdown: ScoreBreakdown = {
-    keywords: { earned: keywordEarned, possible: 40, missing },
+    keywords: { earned: keywordEarned, possible: 35, missing },
     jobTitle: { earned: titleEarned, possible: 10, expected: expectedTitle },
     contact: { earned: contactEarned, possible: 10, missing: missingContact },
     measurable: { earned: measurableEarned, possible: 10 },
-    structure: { earned: structureEarned, possible: 10, missing: missingSections },
+    softSkills: { earned: softEarned, possible: 10, missing: missingSoft },
+    structure: { earned: structureEarned, possible: 8, missing: missingSections },
     dates: { earned: datesEarned, possible: 5 },
-    length: { earned: lengthEarned, possible: 5, words: wordCount },
-    parseability: { earned: parseEarned, possible: 10, issues },
+    length: { earned: lengthEarned, possible: 4, words: wordCount },
+    parseability: { earned: parseEarned, possible: 8, issues },
   };
 
   const score =
@@ -262,6 +386,7 @@ export function scoreResume(resumeText: string, jobDescription: string): ResumeS
     titleEarned +
     contactEarned +
     measurableEarned +
+    softEarned +
     structureEarned +
     datesEarned +
     lengthEarned +

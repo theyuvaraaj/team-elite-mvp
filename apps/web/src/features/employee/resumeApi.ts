@@ -7,6 +7,7 @@ export interface ResumeScoreBreakdown {
   jobTitle: ResumeScoreComponent & { expected: string | null };
   contact: ResumeScoreComponent & { missing: string[] };
   measurable: ResumeScoreComponent;
+  softSkills: ResumeScoreComponent & { missing: string[] };
   structure: ResumeScoreComponent & { missing: string[] };
   dates: ResumeScoreComponent;
   length: ResumeScoreComponent & { words: number };
@@ -54,6 +55,7 @@ export function useOptimizeResume(candidateId: string) {
       file: File;
       jobDescription: string;
       companyName: string;
+      jobTitle: string;
       alignJobTitles: boolean;
       addCertifications: boolean;
       addLocation: boolean;
@@ -65,6 +67,7 @@ export function useOptimizeResume(candidateId: string) {
       // in the multipart stream.
       form.append("jobDescription", input.jobDescription);
       form.append("companyName", input.companyName);
+      if (input.jobTitle.trim()) form.append("jobTitle", input.jobTitle.trim());
       form.append("alignJobTitles", String(input.alignJobTitles));
       form.append("addCertifications", String(input.addCertifications));
       form.append("addLocation", String(input.addLocation));

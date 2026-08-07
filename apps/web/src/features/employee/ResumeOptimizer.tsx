@@ -31,6 +31,7 @@ export function ResumeOptimizer({ candidateId }: { candidateId: string }) {
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const [company, setCompany] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
   const [jd, setJd] = useState("");
   // Optional enhancements — all off by default.
   const [alignJobTitles, setAlignJobTitles] = useState(false);
@@ -68,6 +69,7 @@ export function ResumeOptimizer({ candidateId }: { candidateId: string }) {
         file,
         jobDescription: jd,
         companyName: company,
+        jobTitle,
         alignJobTitles,
         addCertifications,
         addLocation,
@@ -145,13 +147,27 @@ export function ResumeOptimizer({ candidateId }: { candidateId: string }) {
           </div>
         </div>
 
-        <Input
-          label="Company name"
-          name="company"
-          value={company}
-          onChange={(e) => setCompany(e.target.value)}
-          required
-        />
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Input
+            label="Company name"
+            name="company"
+            value={company}
+            onChange={(e) => setCompany(e.target.value)}
+            required
+          />
+          <Input
+            label="Job title"
+            hint="Recommended"
+            name="jobTitle"
+            value={jobTitle}
+            onChange={(e) => setJobTitle(e.target.value)}
+            placeholder="Senior Engineer, Site Reliability"
+          />
+        </div>
+        <p className="-mt-2 text-xs text-muted-foreground">
+          Paste the posting's exact title. ATS scanners match the whole title, and
+          this is the single biggest score factor after keywords.
+        </p>
         <label className="grid gap-2 text-sm font-medium text-foreground">
           Job description
           <textarea
@@ -252,6 +268,7 @@ export function ResumeOptimizer({ candidateId }: { candidateId: string }) {
                 ["Job title match", result.scoreBreakdown.jobTitle],
                 ["Contact details", result.scoreBreakdown.contact],
                 ["Measurable results", result.scoreBreakdown.measurable],
+                ["Soft skills", result.scoreBreakdown.softSkills],
                 ["Sections", result.scoreBreakdown.structure],
                 ["Date formats", result.scoreBreakdown.dates],
                 ["Length", result.scoreBreakdown.length],

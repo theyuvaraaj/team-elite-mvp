@@ -17,6 +17,7 @@ export interface OptimizeParams {
   file: UploadedFile;
   jobDescription: string;
   companyName: string;
+  jobTitle?: string | null;
   enhancements?: OptimizeEnhancements;
   optimizer?: ResumeOptimizer;
 }
@@ -34,13 +35,16 @@ export async function optimizeResume(params: OptimizeParams) {
       resumeText,
       jobDescription: params.jobDescription,
       companyName: params.companyName,
+      jobTitle: params.jobTitle,
       enhancements: params.enhancements,
       missingKeywords,
       gaps,
     });
     // Score the text an ATS would extract from the rendered file, not the
     // markdown source (whose ** markers become real bold when rendered).
-    const scored = scoreResume(markdownToPlainText(markdown), params.jobDescription);
+    const scored = scoreResume(markdownToPlainText(markdown), params.jobDescription, {
+      jobTitle: params.jobTitle,
+    });
     if (!best || scored.score > best.score) {
       best = { markdown, score: scored.score, breakdown: scored.breakdown };
     }

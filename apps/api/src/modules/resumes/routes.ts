@@ -77,6 +77,7 @@ export async function resumeRoutes(app: FastifyInstance): Promise<void> {
     const fields = parseBody(optimizeFieldsSchema, {
       jobDescription: (file.fields.jobDescription as { value?: string })?.value,
       companyName: (file.fields.companyName as { value?: string })?.value,
+      jobTitle: (file.fields.jobTitle as { value?: string })?.value,
       alignJobTitles: (file.fields.alignJobTitles as { value?: string })?.value,
       addCertifications: (file.fields.addCertifications as { value?: string })?.value,
       addLocation: (file.fields.addLocation as { value?: string })?.value,
@@ -89,6 +90,7 @@ export async function resumeRoutes(app: FastifyInstance): Promise<void> {
       file: { buffer, filename: file.filename, mimetype: file.mimetype },
       jobDescription: fields.jobDescription,
       companyName: fields.companyName,
+      jobTitle: fields.jobTitle,
       enhancements: {
         alignJobTitles: isEnabled(fields.alignJobTitles),
         addCertifications: isEnabled(fields.addCertifications),
