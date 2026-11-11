@@ -195,13 +195,13 @@ export class GeminiOptimizer implements ResumeOptimizer {
       const status = (error as { status?: number })?.status;
       const name = (error as { name?: string })?.name ?? "";
       const message = String((error as { message?: string })?.message ?? "");
+      // Log before mapping: a 429/timeout used to return early and left quota
+      // and capacity failures invisible in the logs.
+      console.error("[optimizer] Gemini call failed:", modelName, name, status ?? "", message.slice(0, 300));
       if (status === 429) throw new AppError(429, "OPTIMIZER_BUSY", "AI service is busy, try again shortly");
       if (name === "AbortError" || /timeout|timed out|deadline|aborted/i.test(message)) {
         throw new AppError(504, "OPTIMIZER_TIMEOUT", "The AI service timed out. Please try again.");
       }
-      // Keep the upstream reason visible; a swallowed cause makes this
-      // impossible to diagnose from a generic 502.
-      console.error("[optimizer] Gemini call failed:", modelName, name, status ?? "", message);
       if (
         (status && status >= 500) ||
         /unavailable|high demand|overloaded|try again/i.test(message)

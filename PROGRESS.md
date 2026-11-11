@@ -62,8 +62,12 @@ Resume optimizer:
 - `GEMINI_API_KEY` — Google AI Studio key. **Optional**; without it dev/test use
   a deterministic stub and a keyless **production** deploy returns a clean 503
   (never fabricates). Present in this env.
-- `RESUME_OPTIMIZE_MODEL` — default `gemini-flash-latest`. **Do NOT use
-  `gemini-2.5-flash`** — it 404s for new API accounts.
+- `RESUME_OPTIMIZE_MODEL` — default `gemini-3.5-flash`. Model availability
+  churns: `gemini-2.5-flash` and `gemini-2.0-flash` now 404, and
+  `gemini-flash-latest` started hanging with no response at all (curl
+  `HTTP 000`). When optimization fails across the board, curl the model
+  directly with a realistically sized prompt before suspecting the code — a
+  one-word "hi" can succeed against a model that 503s on a real request.
 - `RESUME_MAX_REFINE_PASSES` (3), `RESUME_SCORE_TARGET` (95),
   `RESUME_MAX_UPLOAD_MB` (5), `RESUME_REQUEST_TIMEOUT_MS` (55000),
   `RESUME_MAX_RETRIES` (2), `RESUME_FALLBACK_MODEL` (`gemini-3.5-flash`),
