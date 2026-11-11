@@ -24,7 +24,12 @@ function resumeFileName(
     parseResumeLines(markdown).find((l) => l.kind === "name")?.text ||
     "Resume";
   const token = (s: string) => s.replace(/[^A-Za-z0-9]+/g, " ").trim().split(/\s+/).join("_");
-  const base = [token(name) || "Resume", token(company), "Resume"].filter(Boolean).join("_");
+  // A date keeps repeat downloads from colliding: the browser would otherwise
+  // append " (1)", and the space and parentheses are flagged by ATS scanners.
+  const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const base = [token(name) || "Resume", token(company), "Resume", stamp]
+    .filter(Boolean)
+    .join("_");
   return `${base}.${format}`;
 }
 

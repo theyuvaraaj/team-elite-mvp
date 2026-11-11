@@ -115,9 +115,15 @@ Pipeline (`apps/api/src/modules/resumes/`):
    enriched. Per-call timeout (SDK + Promise.race backstop) so a stalled call
    can't hang.
 3. `scorer.ts` — transparent 0–100 heuristic modelled on real ATS scanners
-   (calibrated against Jobscan): keywords 32 (whole-term + JD phrase matching,
-   never substrings), job-title 10 (**contiguous** phrase match; an explicit
-   posting title beats the inferred one), contact 10
+   (calibrated against Jobscan): keywords 32 — whole-term matching, never
+   substrings, **weighted by how often the JD repeats a term**, over the
+   repeated terms plus a bounded tail of `TAIL_TERMS` one-off terms. At weight
+   1 a real one-off skill ("networking") and a prose fragment ("management
+   matter") are indistinguishable without a curated skill taxonomy, which is
+   the structural reason our number will not equal Jobscan's; bounding the
+   tail keeps noise from dominating. Job-title 10 (**contiguous** phrase
+   match; graded against BOTH the supplied and inferred title, weaker wins),
+   contact 10
    (email/phone/location/LinkedIn), measurable results 10, soft skills 10 (only
    those the JD names, matched on the actual noun - "led" is not "leadership"),
    tone 3 (resume cliches), sections 8 (the heading must be "Professional

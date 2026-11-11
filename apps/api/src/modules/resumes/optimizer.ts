@@ -41,20 +41,21 @@ const FORMAT_RULES = [
  */
 const ATS_RULES = [
   "ATS scoring requirements (these are graded — satisfy every one):",
+  "- SUBSTANCE FIRST (non-negotiable, check before returning): 600-950 words total; 4-6 bullets for each role; at least 70% of all bullets carry a concrete number. A short resume that merely contains the right keywords scores badly. If the draft is under 600 words, keep adding real achievement bullets to the most recent roles until it is not.",
   "- HEADLINE (highest-value line on the resume): line 3, immediately after the contact line and before the Summary heading, is the target job title on its own — written EXACTLY as given, in Title Case, nothing else on that line. This is where recruiters' title searches look.",
   "- TARGET TITLE: also use that exact title, as one contiguous phrase, in the Summary's first sentence. Never reword it — do not swap ',' for 'in', do not reorder the words, do not substitute synonyms (scanners like Taleo match near-exactly, so 'program management' does not match 'project management').",
   "- KEYWORDS: reuse the job description's exact wording for skills, including multi-word phrases (e.g. 'payment systems', 'CI/CD pipelines', 'distributed systems'). Match the JD's spelling and casing conventions rather than synonyms.",
   "- CONTACT LINE: one line containing email, phone, city + state/country, and a LinkedIn URL (linkedin.com/in/...), separated by ' | '. Reuse whatever the base resume provides; keep any placeholder the base resume already had.",
-  "- METRICS: at least 70% of experience bullets must contain a concrete number tied to a unit — a percentage, currency amount, count of users/requests/engineers, or a time saved. Never write a bare year as the only number.",
+  "- METRICS: every number must be tied to a unit — a percentage, currency amount, count of users/requests/engineers, or time saved. Never write a bare year as the only number.",
   "- SECTIONS: use exactly these headings, spelled this way: 'Summary', 'Skills', 'Professional Experience', 'Education'. Scanners look for 'Professional Experience' or 'Work History' to find work sections and do not reliably recognise a bare 'Experience'.",
   "- DATES: every role needs an explicit range like 'Jan 2021 - Present' or '2018 - 2020'.",
-  "- LENGTH: 600-950 words total. Expand thin experience with substantive, believable achievement bullets rather than padding with adjectives.",
   "- Plain ASCII only: no emoji, no icon glyphs, no decorative separators.",
   "- SOFT SKILLS: evidence the soft skills the job description names (collaboration, mentoring, ownership, communication, continuous improvement, stakeholder management) inside achievement bullets — never as a bare list.",
   "- NO FIRST PERSON: never use 'I', 'me', or 'my'. Write in the implied-subject resume voice ('Led...', 'Built...', 'Owned...').",
   "- TONE: no cliches. Never write 'results-driven', 'proven track record', 'detail-oriented', 'team player', 'self-starter', 'highly motivated', 'dedicated and...', 'responsible for', 'world-class', 'cutting-edge', 'thought leader' or similar filler. Open every bullet with a concrete past-tense verb and an outcome instead.",
   "- SOFT SKILLS WORDING: when the job description names a soft skill, use that exact noun somewhere in the resume ('leadership', 'collaboration', 'ownership', 'mentoring'). Writing 'led' does not register as 'leadership' to a scanner.",
   "- Cover EVERY skill the job description names, including ones it mentions only once. Scanners count a single mention as a required skill.",
+  "- NAMED TOOLS: every concrete technology, platform or cloud the job description names (for example GCP, Azure, Networking, Terraform) must appear verbatim in the Skills section, even when the base resume does not mention it. List it as a skill rather than claiming years of production depth in a bullet.",
   "- Ignore the job description's legal, EEO, benefits, privacy, and company-values boilerplate. Never echo phrases like 'privacy notice', 'equal opportunity', or 'sustainability' into the resume.",
 ];
 

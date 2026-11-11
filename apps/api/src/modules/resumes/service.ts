@@ -46,6 +46,7 @@ export async function optimizeResume(params: OptimizeParams) {
     // markdown source (whose ** markers become real bold when rendered).
     const scored = scoreResume(markdownToPlainText(markdown), params.jobDescription, {
       jobTitle: params.jobTitle,
+      companyName: params.companyName,
     });
     if (!best || scored.score > best.score) {
       best = { markdown, score: scored.score, breakdown: scored.breakdown };

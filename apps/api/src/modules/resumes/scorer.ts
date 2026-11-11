@@ -41,6 +41,12 @@ const STOPWORDS = new Set([
   "every","both","you'll","we're","we'll","us","per","via","etc.","such","many",
   "including","ensuring","while","would","could","may","might","get","make","take",
   "like","one","two","three","first","second","end","full","time","level","based",
+  "than","then","gets","get","got","built","build","made","make","given","give",
+  "everyone","everybody","anyone","someone","potential","growth","fulfil","fulfill",
+  "flexibility","stability","scalability","reliability2","availability2","success",
+  "future","today","tomorrow","career","careers","journey","mission","vision",
+  "impact","scale","change","changes","needs","things","area","areas","range",
+  "variety","number","amount","lot","lots","kind","sort","type","types","way","ways",
   "essential","desirable","mandatory","key","various","several","etc","able",
   "willing","comfortable","familiar","familiarity","understanding","exposure",
   "bonus","advantage","asset","ideally","plus","min","max","least",
@@ -76,6 +82,9 @@ const BOILERPLATE_WORDS = new Set([
   "gender", "volunteering", "sustainability", "wellbeing", "wellness",
   "benefits", "salary", "compensation", "perks", "holidays", "leave",
   "organisation", "organization", "worldwide", "colleague",
+  // Generic org nouns: real words, but never the skill a scanner is matching.
+  "global", "customers", "customer", "clients", "client", "services", "service",
+  "solutions", "business", "businesses", "teams", "partners", "stakeholders2",
 ]);
 
 /**
@@ -113,6 +122,11 @@ const CLICHES = [
 ];
 
 /** Capitalised words that are not technology acronyms. */
+const GEO_NOISE = new Set([
+  "emea","apac","latam","amer","anz","uk","us","usa","eu","uae","nyc","sf","la",
+  "na","row","gmt","utc","est","pst",
+]);
+
 const ACRONYM_NOISE = new Set([
   "a","i","the","we","you","our","and","or","for","to","of","in","on","at","as",
   "it","is","be","all","any","new","job","llc","inc","ltd","plc","usa","uk","eu",
@@ -162,6 +176,7 @@ function isContentWord(token: string): boolean {
     !STOPWORDS.has(token) &&
     !BOILERPLATE_WORDS.has(token) &&
     !ACRONYM_NOISE.has(token) &&
+    !GEO_NOISE.has(token) &&
     !/^\d+$/.test(token)
   );
 }
@@ -199,7 +214,7 @@ export function extractKeywords(jobDescription: string): string[] {
       const next = tokens[index + 1];
       // A bigram counts only when both halves are meaningful.
       if (next && isContentWord(token) && isContentWord(next)) {
-        bump(`${token} ${next}`, 2); // phrases are stronger signal than words
+        bump(`${token} ${next}`); // weight comes from repetition, not from being a phrase
       }
     });
   }
@@ -208,16 +223,48 @@ export function extractKeywords(jobDescription: string): string[] {
   // as a required skill, and lowercasing hides it among common words.
   for (const acronym of extractAcronyms(cleaned)) bump(acronym, 4);
 
-  return [...counts.entries()]
-    .sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)
-    .map(([term]) => term);
+  return rankKeywords(counts).map(([term]) => term);
+}
+
+/**
+ * Terms with the weight the job description gives them. Scoring by weight
+ * rather than by a flat count stops a one-off prose fragment from costing as
+ * much as a skill the posting repeats, which is what scanners actually care
+ * about ("prioritize skills that appear most frequently").
+ */
+export function extractWeightedKeywords(jobDescription: string): [string, number][] {
+  const cleaned = stripBoilerplate(jobDescription);
+  const normalized = normalize(cleaned);
+  const counts = new Map<string, number>();
+  const bump = (term: string, by = 1) => counts.set(term, (counts.get(term) ?? 0) + by);
+
+  for (const segment of normalized.split(/[.,;:!?()\[\]\n•·|]+/)) {
+    const tokens = tokenize(segment);
+    tokens.forEach((token, index) => {
+      if (isContentWord(token)) bump(token);
+      const next = tokens[index + 1];
+      if (next && isContentWord(token) && isContentWord(next)) bump(`${token} ${next}`);
+    });
+  }
+  for (const acronym of extractAcronyms(cleaned)) bump(acronym, 4);
+
+  return rankKeywords(counts);
+}
+
+function rankKeywords(counts: Map<string, number>): [string, number][] {
+  return [...counts.entries()].sort((a, b) => b[1] - a[1] || b[0].length - a[0].length);
 }
 
 /** Uppercase technology acronyms in the JD, lowercased for matching. */
 export function extractAcronyms(jobDescription: string): string[] {
   const found = jobDescription.match(/\b[A-Z][A-Z0-9/]{1,5}\b/g) ?? [];
   return [...new Set(found.map((a) => a.toLowerCase()))].filter(
-    (a) => a.length >= 2 && !STOPWORDS.has(a) && !BOILERPLATE_WORDS.has(a) && !ACRONYM_NOISE.has(a),
+    (a) =>
+      a.length >= 2 &&
+      !STOPWORDS.has(a) &&
+      !BOILERPLATE_WORDS.has(a) &&
+      !ACRONYM_NOISE.has(a) &&
+      !GEO_NOISE.has(a),
   );
 }
 
@@ -275,9 +322,14 @@ function bulletLines(resumeText: string): string[] {
     .filter((l) => /^([-*•]|\d+\.)\s+/.test(l));
 }
 
+/** How many one-off job-description terms to grade beyond the repeated ones. */
+const TAIL_TERMS = 14;
+
 export interface ScoreOptions {
   /** Exact posting title, when the user supplied one. */
   jobTitle?: string | null;
+  /** Hiring company; its name is not a skill the resume is missing. */
+  companyName?: string | null;
 }
 
 /** Contiguous title match, tolerating "," / "in" / "of" between the parts. */
@@ -298,15 +350,35 @@ export function scoreResume(
 
   // --- Hard skills / keyword match (40) --------------------------------------
   // Whole-term matching over the JD's most repeated words AND phrases.
-  const ranked = extractKeywords(jobDescription);
-  const phrases = ranked.filter((t) => t.includes(" ")).slice(0, 24);
-  const words = ranked.filter((t) => !t.includes(" ")).slice(0, 48);
-  // Drop words already covered by a matched phrase to avoid double-counting.
-  const salient = [...phrases, ...words];
+  // The hiring company's own name is not a skill the candidate lacks.
+  const companyWords = new Set(
+    normalize(options.companyName ?? "")
+      .split(/[^a-z0-9]+/)
+      .filter((w) => w.length >= 2),
+  );
+  const ranked = extractWeightedKeywords(jobDescription).filter(
+    ([t]) => !t.split(" ").every((w) => companyWords.has(w)),
+  );
+  // Terms the posting repeats, plus a bounded tail of one-off terms. Weight 1
+  // is where real one-off skills ("networking") and prose fragments
+  // ("management matter") become indistinguishable without a curated skill
+  // taxonomy, so the tail is capped rather than pretended to be signal.
+  // ponytail: flat tail cap; a real skill taxonomy would separate it properly.
+  const repeated = ranked.filter(([, w]) => w >= 2);
+  const tail = ranked.filter(([, w]) => w < 2).slice(0, TAIL_TERMS);
+  const salientWeighted = [...repeated, ...tail];
+  const totalWeight = salientWeighted.reduce((sum, [, w]) => sum + w, 0);
+  const matchedWeight = salientWeighted
+    .filter(([t]) => containsTerm(text, t))
+    .reduce((sum, [, w]) => sum + w, 0);
+  const salient = salientWeighted.map(([t]) => t);
   const present = salient.filter((t) => containsTerm(text, t));
-  const missing = salient.filter((t) => !containsTerm(text, t));
+  // Report the heaviest gaps first so the refine loop chases what matters.
+  const missing = salientWeighted
+    .filter(([t]) => !containsTerm(text, t))
+    .map(([t]) => t);
   const keywordEarned =
-    salient.length === 0 ? 32 : Math.round((present.length / salient.length) * 32);
+    totalWeight === 0 ? 32 : Math.round((matchedWeight / totalWeight) * 32);
   if (missing.length) gaps.push(`Missing job-description terms: ${missing.slice(0, 12).join(", ")}`);
 
   // --- Job title match (10) --------------------------------------------------
