@@ -158,6 +158,23 @@ describe("scoreResume", () => {
     expect(result.breakdown.jobTitle.earned).toBe(10);
   });
 
+  it("penalises resume cliches and names them", () => {
+    const cliche = "Jane\njane@x.com\nSummary\nResults-driven engineer with a proven track record.";
+    const result = scoreResume(cliche, JD);
+    expect(result.breakdown.tone.earned).toBeLessThan(3);
+    expect(result.breakdown.tone.cliches).toContain("results-driven");
+    expect(result.breakdown.tone.cliches).toContain("proven track record");
+    expect(scoreResume("Jane\njane@x.com\nSummary\nEngineer.", JD).breakdown.tone.earned).toBe(3);
+  });
+
+  it("does not count 'led' as the soft skill 'leadership'", () => {
+    const jd = "You will need leadership skills to run this team.";
+    const ledOnly = "Jane\njane@x.com\nSummary\nEngineer.\n- Led a migration and led reviews.";
+    const explicit = "Jane\njane@x.com\nSummary\nEngineer.\n- Demonstrated leadership across two teams.";
+    expect(scoreResume(ledOnly, jd).breakdown.softSkills.missing).toContain("leadership");
+    expect(scoreResume(explicit, jd).breakdown.softSkills.missing).not.toContain("leadership");
+  });
+
   it("flags a bare 'Experience' heading, which scanners do not recognise", () => {
     const bare = "Jane\njane@x.com\nSummary\nEngineer.\nExperience\n- x\nEducation\n- y";
     const named = bare.replace("Experience\n- x", "Professional Experience\n- x");

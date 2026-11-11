@@ -5,6 +5,7 @@ export interface ScoreBreakdown {
   contact: ScoreComponent & { missing: string[] };
   measurable: ScoreComponent;
   softSkills: ScoreComponent & { missing: string[] };
+  tone: ScoreComponent & { cliches: string[] };
   structure: ScoreComponent & { missing: string[] };
   dates: ScoreComponent;
   length: ScoreComponent & { words: number };
@@ -84,16 +85,31 @@ const BOILERPLATE_WORDS = new Set([
 const SOFT_SKILLS: string[][] = [
   ["communication", "communicate", "communicating"],
   ["collaboration", "collaborate", "collaborating", "cross-functional", "partner with"],
-  ["leadership", "lead", "leading", "led"],
+  ["leadership", "leadership skills", "team lead", "led a team", "led the team"],
   ["mentoring", "mentor", "mentored", "coaching", "coach"],
   ["problem solving", "problem-solving", "troubleshooting", "root cause"],
   ["ownership", "owned", "accountable", "accountability", "end-to-end ownership"],
   ["continuous improvement", "continuous learning", "learning mindset"],
   ["stakeholder management", "stakeholders", "stakeholder"],
-  ["adaptability", "adaptable", "flexible", "agile mindset"],
-  ["teamwork", "team player", "cross-team"],
+  ["adaptability", "adaptable", "agile mindset"],
+  ["teamwork", "cross-team", "partnered with"],
   ["attention to detail", "detail-oriented", "meticulous"],
   ["time management", "prioritization", "prioritise", "prioritize"],
+];
+
+/**
+ * Tired resume phrases. Scanners score "resume tone" and flag these, and they
+ * displace the concrete achievement the line should carry.
+ */
+const CLICHES = [
+  "results-driven", "results driven", "proven track record", "track record of success",
+  "detail-oriented", "detail oriented", "team player", "hard worker", "hard-working",
+  "self-starter", "self starter", "go-getter", "think outside the box", "outside the box",
+  "synergy", "synergies", "best of breed", "world-class", "world class", "cutting-edge",
+  "bleeding edge", "dynamic professional", "seasoned professional", "highly motivated",
+  "goal-oriented", "goal oriented", "value add", "value-add", "wear many hats",
+  "ninja", "rockstar", "guru", "thought leader", "passion for excellence",
+  "dedicated and", "responsible for", "duties included", "hit the ground running",
 ];
 
 /** Drop legal/EEO/benefits prose so it never becomes a "required" keyword. */
@@ -262,14 +278,14 @@ export function scoreResume(
   // --- Hard skills / keyword match (40) --------------------------------------
   // Whole-term matching over the JD's most repeated words AND phrases.
   const ranked = extractKeywords(jobDescription);
-  const phrases = ranked.filter((t) => t.includes(" ")).slice(0, 12);
-  const words = ranked.filter((t) => !t.includes(" ")).slice(0, 24);
+  const phrases = ranked.filter((t) => t.includes(" ")).slice(0, 18);
+  const words = ranked.filter((t) => !t.includes(" ")).slice(0, 36);
   // Drop words already covered by a matched phrase to avoid double-counting.
   const salient = [...phrases, ...words];
   const present = salient.filter((t) => containsTerm(text, t));
   const missing = salient.filter((t) => !containsTerm(text, t));
   const keywordEarned =
-    salient.length === 0 ? 35 : Math.round((present.length / salient.length) * 35);
+    salient.length === 0 ? 32 : Math.round((present.length / salient.length) * 32);
   if (missing.length) gaps.push(`Missing job-description terms: ${missing.slice(0, 12).join(", ")}`);
 
   // --- Job title match (10) --------------------------------------------------
@@ -355,6 +371,13 @@ export function scoreResume(
     gaps.push(`Demonstrate these soft skills the job asks for: ${missingSoft.join(", ")}`);
   }
 
+  // --- Resume tone (3) ------------------------------------------------------
+  const clichesFound = CLICHES.filter((c) => text.includes(c));
+  const toneEarned = Math.max(0, 3 - clichesFound.length);
+  if (clichesFound.length) {
+    gaps.push(`Remove cliches and replace them with concrete achievements: ${clichesFound.join(", ")}`);
+  }
+
   // --- Section structure (8) ----------------------------------------------
   const missingSections = SECTIONS.filter((s) => !s.patterns.some((p) => p.test(resumeText))).map(
     (s) => s.name,
@@ -385,7 +408,8 @@ export function scoreResume(
   if (issues.length) gaps.push(`Fix parseability: ${issues.join(", ")}`);
 
   const breakdown: ScoreBreakdown = {
-    keywords: { earned: keywordEarned, possible: 35, missing },
+    keywords: { earned: keywordEarned, possible: 32, missing },
+    tone: { earned: toneEarned, possible: 3, cliches: clichesFound },
     jobTitle: { earned: titleEarned, possible: 10, expected: expectedTitle },
     contact: { earned: contactEarned, possible: 10, missing: missingContact },
     measurable: { earned: measurableEarned, possible: 10 },
@@ -402,6 +426,7 @@ export function scoreResume(
     contactEarned +
     measurableEarned +
     softEarned +
+    toneEarned +
     structureEarned +
     datesEarned +
     lengthEarned +

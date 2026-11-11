@@ -52,6 +52,9 @@ const ATS_RULES = [
   "- Plain ASCII only: no emoji, no icon glyphs, no decorative separators.",
   "- SOFT SKILLS: evidence the soft skills the job description names (collaboration, mentoring, ownership, communication, continuous improvement, stakeholder management) inside achievement bullets — never as a bare list.",
   "- NO FIRST PERSON: never use 'I', 'me', or 'my'. Write in the implied-subject resume voice ('Led...', 'Built...', 'Owned...').",
+  "- TONE: no cliches. Never write 'results-driven', 'proven track record', 'detail-oriented', 'team player', 'self-starter', 'highly motivated', 'dedicated and...', 'responsible for', 'world-class', 'cutting-edge', 'thought leader' or similar filler. Open every bullet with a concrete past-tense verb and an outcome instead.",
+  "- SOFT SKILLS WORDING: when the job description names a soft skill, use that exact noun somewhere in the resume ('leadership', 'collaboration', 'ownership', 'mentoring'). Writing 'led' does not register as 'leadership' to a scanner.",
+  "- Cover EVERY skill the job description names, including ones it mentions only once. Scanners count a single mention as a required skill.",
   "- Ignore the job description's legal, EEO, benefits, privacy, and company-values boilerplate. Never echo phrases like 'privacy notice', 'equal opportunity', or 'sustainability' into the resume.",
 ];
 
@@ -226,7 +229,7 @@ export class StubOptimizer implements ResumeOptimizer {
       `candidate@example.com | +1 555 0100 | ${loc} | linkedin.com/in/candidate`,
       "",
       "## Summary",
-      `Results-driven professional targeting the role at ${input.companyName}, with hands-on strength across ${top}.`,
+      `Senior engineer targeting the role at ${input.companyName}, with hands-on depth across ${top}.`,
       "",
       "## Skills",
       kws.join(", "),

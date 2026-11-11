@@ -110,11 +110,14 @@ Pipeline (`apps/api/src/modules/resumes/`):
    enriched. Per-call timeout (SDK + Promise.race backstop) so a stalled call
    can't hang.
 3. `scorer.ts` — transparent 0–100 heuristic modelled on real ATS scanners
-   (calibrated against Jobscan): keywords 35 (whole-term + JD phrase matching,
+   (calibrated against Jobscan): keywords 32 (whole-term + JD phrase matching,
    never substrings), job-title 10 (**contiguous** phrase match; an explicit
    posting title beats the inferred one), contact 10
    (email/phone/location/LinkedIn), measurable results 10, soft skills 10 (only
-   those the JD names), sections 8, dates 5, length 4, parseability 8.
+   those the JD names, matched on the actual noun - "led" is not "leadership"),
+   tone 3 (resume cliches), sections 8 (the heading must be "Professional
+   Experience" or "Work History"; scanners do not recognise a bare
+   "Experience"), dates 5, length 4, parseability 8.
    `stripBoilerplate` removes EEO/privacy/benefits prose first — otherwise the
    loop demands junk like "gender" and the optimizer writes it into the resume.
    Scoring runs on the *rendered* text (`markdownToPlainText`), not the markdown
