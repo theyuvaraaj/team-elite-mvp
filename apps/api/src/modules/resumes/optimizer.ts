@@ -139,15 +139,20 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export class GeminiOptimizer implements ResumeOptimizer {
   async optimize(input: OptimizeInput): Promise<string> {
-    const attempts = config.RESUME_MAX_RETRIES + 1;
+    // Free-tier model availability churns constantly: a model that worked an
+    // hour ago can start returning 503 or hanging outright. Walk a list rather
+    // than pinning one name.
+    const models = [
+      config.RESUME_OPTIMIZE_MODEL,
+      ...config.RESUME_FALLBACK_MODELS.split(",")
+        .map((m: string) => m.trim())
+        .filter(Boolean),
+    ];
+    const attempts = Math.max(config.RESUME_MAX_RETRIES + 1, models.length);
     let lastError: unknown;
     for (let attempt = 1; attempt <= attempts; attempt++) {
-      // Last attempt tries the fallback model — the primary is often the one
-      // under load.
-      const model =
-        attempt === attempts && config.RESUME_FALLBACK_MODEL
-          ? config.RESUME_FALLBACK_MODEL
-          : config.RESUME_OPTIMIZE_MODEL;
+      // Move to the next model on each attempt, sticking on the last one.
+      const model = models[Math.min(attempt - 1, models.length - 1)]!;
       try {
         return await this.generate(input, model);
       } catch (error) {

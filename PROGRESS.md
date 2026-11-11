@@ -68,6 +68,11 @@ Resume optimizer:
   `HTTP 000`). When optimization fails across the board, curl the model
   directly with a realistically sized prompt before suspecting the code — a
   one-word "hi" can succeed against a model that 503s on a real request.
+- `RESUME_FALLBACK_MODELS` — comma-separated models tried in order after the
+  primary. Free-tier availability churns constantly: `gemini-2.5-flash` and
+  `gemini-2.0-flash` now 404, and `gemini-flash-latest` hangs with no HTTP
+  response. Probe with a realistically sized prompt before suspecting the code;
+  a one-word "hi" can succeed against a model that 503s on a real request.
 - `RESUME_MAX_REFINE_PASSES` (3), `RESUME_SCORE_TARGET` (95),
   `RESUME_MAX_UPLOAD_MB` (5), `RESUME_REQUEST_TIMEOUT_MS` (55000),
   `RESUME_MAX_RETRIES` (2), `RESUME_FALLBACK_MODEL` (`gemini-3.5-flash`),

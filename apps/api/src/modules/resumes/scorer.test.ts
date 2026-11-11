@@ -67,6 +67,27 @@ describe("extractKeywords", () => {
   });
 });
 
+describe("acronym skills", () => {
+  const jd = `DevOps Engineer. Work with GCP and AWS, manage Networking, build
+    CI/CD pipelines, define SLO targets. CEO approval needed. HR will contact you.`;
+
+  it("surfaces one-off technology acronyms near the top", () => {
+    // Scanners count a single "GCP" as a required skill; a frequency cap alone
+    // would bury it.
+    const kw = extractKeywords(jd);
+    for (const skill of ["gcp", "aws", "ci/cd", "slo", "networking"]) {
+      expect(kw).toContain(skill);
+    }
+    expect(kw.indexOf("gcp")).toBeLessThan(10);
+  });
+
+  it("does not treat business acronyms as skills", () => {
+    const kw = extractKeywords(jd);
+    expect(kw).not.toContain("ceo");
+    expect(kw).not.toContain("hr");
+  });
+});
+
 describe("extractJobTitle", () => {
   it("recovers the JD's target title", () => {
     expect(extractJobTitle(JD)).toBe("senior payments engineer");

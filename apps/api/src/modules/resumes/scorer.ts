@@ -92,7 +92,7 @@ const SOFT_SKILLS: string[][] = [
   ["continuous improvement", "continuous learning", "learning mindset"],
   ["stakeholder management", "stakeholders", "stakeholder"],
   ["adaptability", "adaptable", "agile mindset"],
-  ["teamwork", "cross-team", "partnered with"],
+  ["teamwork", "encourage teamwork", "cross-team"],
   ["attention to detail", "detail-oriented", "meticulous"],
   ["time management", "prioritization", "prioritise", "prioritize"],
 ];
@@ -111,6 +111,13 @@ const CLICHES = [
   "ninja", "rockstar", "guru", "thought leader", "passion for excellence",
   "dedicated and", "responsible for", "duties included", "hit the ground running",
 ];
+
+/** Capitalised words that are not technology acronyms. */
+const ACRONYM_NOISE = new Set([
+  "a","i","the","we","you","our","and","or","for","to","of","in","on","at","as",
+  "it","is","be","all","any","new","job","llc","inc","ltd","plc","usa","uk","eu",
+  "ceo","cto","hr","pto","eeo","dei","id","ok","etc","faq","q1","q2","q3","q4",
+]);
 
 /** Drop legal/EEO/benefits prose so it never becomes a "required" keyword. */
 export function stripBoilerplate(jobDescription: string): string {
@@ -154,6 +161,7 @@ function isContentWord(token: string): boolean {
     token.length >= 3 &&
     !STOPWORDS.has(token) &&
     !BOILERPLATE_WORDS.has(token) &&
+    !ACRONYM_NOISE.has(token) &&
     !/^\d+$/.test(token)
   );
 }
@@ -177,7 +185,8 @@ export function containsTerm(haystack: string, term: string): boolean {
  * real ATS scanners match them as units.
  */
 export function extractKeywords(jobDescription: string): string[] {
-  const normalized = normalize(stripBoilerplate(jobDescription));
+  const cleaned = stripBoilerplate(jobDescription);
+  const normalized = normalize(cleaned);
   const counts = new Map<string, number>();
   const bump = (term: string, by = 1) =>
     counts.set(term, (counts.get(term) ?? 0) + by);
@@ -195,9 +204,21 @@ export function extractKeywords(jobDescription: string): string[] {
     });
   }
 
+  // Boost acronyms before the frequency cut: scanners treat a one-off "GCP"
+  // as a required skill, and lowercasing hides it among common words.
+  for (const acronym of extractAcronyms(cleaned)) bump(acronym, 4);
+
   return [...counts.entries()]
     .sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)
     .map(([term]) => term);
+}
+
+/** Uppercase technology acronyms in the JD, lowercased for matching. */
+export function extractAcronyms(jobDescription: string): string[] {
+  const found = jobDescription.match(/\b[A-Z][A-Z0-9/]{1,5}\b/g) ?? [];
+  return [...new Set(found.map((a) => a.toLowerCase()))].filter(
+    (a) => a.length >= 2 && !STOPWORDS.has(a) && !BOILERPLATE_WORDS.has(a) && !ACRONYM_NOISE.has(a),
+  );
 }
 
 /**
@@ -278,8 +299,8 @@ export function scoreResume(
   // --- Hard skills / keyword match (40) --------------------------------------
   // Whole-term matching over the JD's most repeated words AND phrases.
   const ranked = extractKeywords(jobDescription);
-  const phrases = ranked.filter((t) => t.includes(" ")).slice(0, 18);
-  const words = ranked.filter((t) => !t.includes(" ")).slice(0, 36);
+  const phrases = ranked.filter((t) => t.includes(" ")).slice(0, 24);
+  const words = ranked.filter((t) => !t.includes(" ")).slice(0, 48);
   // Drop words already covered by a matched phrase to avoid double-counting.
   const salient = [...phrases, ...words];
   const present = salient.filter((t) => containsTerm(text, t));

@@ -15,13 +15,16 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3001),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   GEMINI_API_KEY: z.string().optional().default(""),
-  RESUME_OPTIMIZE_MODEL: z.string().default("gemini-flash-latest"),
+  RESUME_OPTIMIZE_MODEL: z.string().default("gemini-3.6-flash"),
   RESUME_MAX_REFINE_PASSES: z.coerce.number().int().positive().default(3),
   RESUME_SCORE_TARGET: z.coerce.number().int().min(0).max(100).default(95),
   RESUME_MAX_UPLOAD_MB: z.coerce.number().int().positive().default(5),
   RESUME_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(55000),
   /** Tried when the primary model keeps returning transient errors. */
-  RESUME_FALLBACK_MODEL: z.string().default("gemini-3.5-flash"),
+  /** Comma-separated models tried, in order, when earlier ones fail. */
+  RESUME_FALLBACK_MODELS: z
+    .string()
+    .default("gemini-3.5-flash-lite,gemini-flash-lite-latest,gemini-3-flash-preview"),
   /** Extra attempts after the first, for transient 429/503 upstream errors. */
   RESUME_MAX_RETRIES: z.coerce.number().int().min(0).max(5).default(2),
   TECTONIC_BIN: z.string().default("tectonic"),
