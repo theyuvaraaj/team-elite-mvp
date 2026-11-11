@@ -222,7 +222,9 @@ export function extractJobTitle(jobDescription: string): string | null {
 const SECTIONS: { name: string; patterns: RegExp[] }[] = [
   { name: "summary", patterns: [/\b(summary|profile|objective|about me)\b/i] },
   { name: "skills", patterns: [/\b(skills|technical skills|competencies|technologies)\b/i] },
-  { name: "experience", patterns: [/\b(experience|employment|work history|professional)\b/i] },
+  // Scanners want "Professional Experience" or "Work History"; a bare
+  // "Experience" heading is flagged as unrecognised.
+  { name: "professional experience", patterns: [/\b(professional experience|work history|employment history)\b/i] },
   { name: "education", patterns: [/\b(education|academic)\b/i] },
 ];
 

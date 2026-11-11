@@ -158,6 +158,15 @@ describe("scoreResume", () => {
     expect(result.breakdown.jobTitle.earned).toBe(10);
   });
 
+  it("flags a bare 'Experience' heading, which scanners do not recognise", () => {
+    const bare = "Jane\njane@x.com\nSummary\nEngineer.\nExperience\n- x\nEducation\n- y";
+    const named = bare.replace("Experience\n- x", "Professional Experience\n- x");
+    expect(scoreResume(bare, JD).breakdown.structure.missing).toContain("professional experience");
+    expect(scoreResume(named, JD).breakdown.structure.missing).not.toContain(
+      "professional experience",
+    );
+  });
+
   it("grades only the soft skills the job description asks for", () => {
     const jd = "You will mentor engineers and take ownership of availability.";
     const withSoft =
