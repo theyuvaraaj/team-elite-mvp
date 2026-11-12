@@ -1,0 +1,13 @@
+# Railway reads this file from the repository root automatically.
+# Keep the service's Root Directory at the repo root (leave it empty): the
+# Dockerfile needs the workspace lockfile, which lives there.
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "apps/api/Dockerfile"
+
+[deploy]
+healthcheckPath = "/api/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
