@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { adminChosenPassword } from "../users/schemas.js";
 
 const optionalName = z.string().trim().max(80).optional().nullable();
 
@@ -12,6 +13,7 @@ export const createEmployeeSchema = z.object({
     .email()
     .transform((value) => value.toLowerCase()),
   employeeCode: z.string().trim().min(1),
+  password: adminChosenPassword,
 });
 
 export const updateEmployeeSchema = createEmployeeSchema

@@ -30,7 +30,8 @@ export async function createEmployee(
   // and can resend from the Users page.
   let inviteEmailSent = true;
   try {
-    await deliverPasswordToken({
+    // rawToken is null when the admin set the password: nothing to email.
+    if (rawToken) await deliverPasswordToken({
       to: employee.user.email,
       name: employee.user.name,
       rawToken,
@@ -56,6 +57,14 @@ export async function updateEmployee(
   const employee = await repository.updateEmployee(id, data);
   if (!employee) {
     throw new AppError(404, "EMPLOYEE_NOT_FOUND", "Employee not found");
+  }
+  if (data.password) {
+    await audit.log({
+      userId: actorId,
+      action: "EMPLOYEE_PASSWORD_SET",
+      entity: "Employee",
+      entityId: id,
+    });
   }
   await audit.log({
     userId: actorId,

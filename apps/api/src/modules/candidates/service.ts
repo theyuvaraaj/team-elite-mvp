@@ -31,7 +31,8 @@ export async function createCandidate(
   const { candidate, rawToken } = await repository.createCandidate(data);
   let inviteEmailSent = true;
   try {
-    await deliverPasswordToken({
+    // rawToken is null when the admin set the password: nothing to email.
+    if (rawToken) await deliverPasswordToken({
       to: candidate.user.email,
       name: candidate.user.name,
       rawToken,
@@ -57,6 +58,14 @@ export async function updateCandidate(
   const candidate = await repository.updateCandidate(id, data);
   if (!candidate) {
     throw new AppError(404, "CANDIDATE_NOT_FOUND", "Candidate not found");
+  }
+  if (data.password) {
+    await audit.log({
+      userId: actorId,
+      action: "CANDIDATE_PASSWORD_SET",
+      entity: "Candidate",
+      entityId: id,
+    });
   }
   await audit.log({
     userId: actorId,

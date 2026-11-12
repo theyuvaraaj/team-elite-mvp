@@ -5,10 +5,13 @@ import { AppShell } from "../../components/layout/AppShell";
 import { ApiError } from "../../lib/api";
 import { AdminNav } from "./AdminNav";
 import {
+  useAdminAccounts,
   useAdminCandidates,
   useAdminEmployees,
   useAdminUserMutations,
+  type AdminAccount,
   type AdminEmployee,
+  type AdminInput,
   type CandidateInput,
   type EmployeeInput,
 } from "./adminApi";
@@ -19,10 +22,17 @@ const ACTION_BTN =
 const ACTION_BTN_DANGER =
   "inline-flex items-center rounded-[4px] border border-danger/35 bg-surface px-2.5 py-1 text-xs font-medium text-danger transition hover:border-danger/60 hover:bg-danger/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40 focus-visible:ring-offset-1 focus-visible:ring-offset-background";
 
-type UserType = "candidates" | "employees";
+type UserType = "candidates" | "employees" | "admins";
 type Editor =
   | { type: "candidate"; record?: EmployeeCandidate }
-  | { type: "employee"; record?: AdminEmployee };
+  | { type: "employee"; record?: AdminEmployee }
+  | { type: "admin"; record?: AdminAccount };
+
+const SINGULAR: Record<UserType, Editor["type"]> = {
+  candidates: "candidate",
+  employees: "employee",
+  admins: "admin",
+};
 type DisableTarget =
   | { type: "candidate"; id: string; name: string }
   | { type: "employee"; id: string; name: string };
@@ -44,24 +54,25 @@ function UserEditor({
   onClose,
   onSaveCandidate,
   onSaveEmployee,
+  onSaveAdmin,
 }: {
   editor: Editor;
   pending: boolean;
   onClose: () => void;
   onSaveCandidate: (input: CandidateInput) => Promise<void>;
   onSaveEmployee: (input: EmployeeInput) => Promise<void>;
+  onSaveAdmin: (input: AdminInput) => Promise<void>;
 }) {
   const candidate = editor.type === "candidate" ? editor.record : undefined;
   const employee = editor.type === "employee" ? editor.record : undefined;
-  const [name, setName] = useState(candidate?.user.name ?? employee?.user.name ?? "");
-  const [email, setEmail] = useState(candidate?.user.email ?? employee?.user.email ?? "");
+  const admin = editor.type === "admin" ? editor.record : undefined;
+  const person = candidate?.user ?? employee?.user ?? admin;
+  const [name, setName] = useState(person?.name ?? "");
+  const [email, setEmail] = useState(person?.email ?? "");
+  const [password, setPassword] = useState("");
   const [employeeCode, setEmployeeCode] = useState(employee?.employeeCode ?? "");
-  const [firstName, setFirstName] = useState(
-    candidate?.user.firstName ?? employee?.user.firstName ?? "",
-  );
-  const [lastName, setLastName] = useState(
-    candidate?.user.lastName ?? employee?.user.lastName ?? "",
-  );
+  const [firstName, setFirstName] = useState(person?.firstName ?? "");
+  const [lastName, setLastName] = useState(person?.lastName ?? "");
   const [contactEmail, setContactEmail] = useState(candidate?.email ?? "");
   const [phone, setPhone] = useState(candidate?.phone ?? "");
   const [primaryRole, setPrimaryRole] = useState(candidate?.primaryRole ?? "");
@@ -73,21 +84,23 @@ function UserEditor({
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError("");
+    const common = {
+      name: name.trim(),
+      firstName: firstName.trim() || undefined,
+      lastName: lastName.trim() || undefined,
+      email: email.trim(),
+      // Sent only when typed; blank means "email them an invite link" on
+      // create and "keep the current password" on edit.
+      password: password || undefined,
+    };
     try {
       if (editor.type === "employee") {
-        await onSaveEmployee({
-          name: name.trim(),
-          firstName: firstName.trim() || undefined,
-          lastName: lastName.trim() || undefined,
-          email: email.trim(),
-          employeeCode: employeeCode.trim(),
-        });
+        await onSaveEmployee({ ...common, employeeCode: employeeCode.trim() });
+      } else if (editor.type === "admin") {
+        await onSaveAdmin(common);
       } else {
         await onSaveCandidate({
-          name: name.trim(),
-          firstName: firstName.trim() || undefined,
-          lastName: lastName.trim() || undefined,
-          email: email.trim(),
+          ...common,
           ...optionalFields({ contactEmail, phone, primaryRole, experience, gender, address }),
         });
       }
@@ -104,7 +117,9 @@ function UserEditor({
           {editor.record ? "Edit" : "Invite"} {editor.type}
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          {editor.record ? "Update account and profile details." : "An invitation email will be sent after creation."}
+          {editor.record
+            ? "Update account and profile details."
+            : "Set a password to make the account usable now, or leave it blank to email an invite link."}
         </p>
         <form onSubmit={(event) => void submit(event)} className="mt-6 space-y-5">
           <div className="grid gap-5 sm:grid-cols-2">
@@ -115,7 +130,16 @@ function UserEditor({
             <label className="text-sm font-medium">First name <span className="font-normal text-muted-foreground">(optional)</span><input value={firstName} onChange={(event) => setFirstName(event.target.value)} className={fieldClass} /></label>
             <label className="text-sm font-medium">Last name <span className="font-normal text-muted-foreground">(optional)</span><input value={lastName} onChange={(event) => setLastName(event.target.value)} className={fieldClass} /></label>
           </div>
-          {editor.type === "employee" ? (
+          <label className="block text-sm font-medium">
+            {editor.record ? "New password" : "Password"} <span className="font-normal text-muted-foreground">(optional)</span>
+            <input type="password" autoComplete="new-password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} className={fieldClass} />
+            <span className="mt-1.5 block text-xs font-normal text-muted-foreground">
+              {editor.record
+                ? "At least 8 characters. Leave blank to keep the current password. Setting one signs them out everywhere."
+                : "At least 8 characters. If set, no email is sent; share the password with them securely."}
+            </span>
+          </label>
+          {editor.type === "admin" ? null : editor.type === "employee" ? (
             <label className="block text-sm font-medium">Employee code<input required value={employeeCode} onChange={(event) => setEmployeeCode(event.target.value)} className={fieldClass} /></label>
           ) : (
             <>
@@ -133,7 +157,7 @@ function UserEditor({
           <div className="flex justify-end gap-3 border-t border-border pt-5">
             <button type="button" onClick={onClose} disabled={pending} className="h-10 rounded-lg border border-border px-4 text-sm font-semibold hover:bg-muted disabled:opacity-50">Cancel</button>
             <button type="submit" disabled={pending} className="h-10 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-foreground hover:bg-accent-strong disabled:opacity-60">
-              {pending ? "Saving…" : editor.record ? "Save changes" : "Create and invite"}
+              {pending ? "Saving…" : editor.record ? "Save changes" : password ? "Create account" : "Create and invite"}
             </button>
           </div>
         </form>
@@ -152,10 +176,16 @@ export function AdminUsersPage() {
   const [message, setMessage] = useState("");
 
   // The API saves the user even when the invite email fails, and says so.
-  function reportInvite(email: string, created: { inviteEmailSent?: boolean }) {
+  function reportInvite(
+    email: string,
+    created: { inviteEmailSent?: boolean },
+    passwordSet: boolean,
+  ) {
     setActionError("");
     setMessage("");
-    if (created.inviteEmailSent === false) {
+    if (passwordSet) {
+      setMessage(`${email} can sign in now with the password you set. No email was sent.`);
+    } else if (created.inviteEmailSent === false) {
       setActionError(
         `${email} was added, but the invite email could not be sent. Check the sending domain in Resend, then use the Reset button on their row to send it again.`,
       );
@@ -166,6 +196,7 @@ export function AdminUsersPage() {
   const [actionError, setActionError] = useState("");
   const candidatesQuery = useAdminCandidates();
   const employeesQuery = useAdminEmployees();
+  const adminsQuery = useAdminAccounts();
   const mutations = useAdminUserMutations();
   const query = search.trim().toLowerCase();
   const candidates = useMemo(
@@ -177,6 +208,11 @@ export function AdminUsersPage() {
     () => (employeesQuery.data?.employees ?? []).filter((record) =>
       [record.user.name, record.user.email, record.employeeCode].some((value) => value.toLowerCase().includes(query))),
     [employeesQuery.data?.employees, query],
+  );
+  const admins = useMemo(
+    () => (adminsQuery.data?.admins ?? []).filter((record) =>
+      [record.name, record.email].some((value) => value.toLowerCase().includes(query))),
+    [adminsQuery.data?.admins, query],
   );
 
   async function resetPassword(
@@ -211,24 +247,27 @@ export function AdminUsersPage() {
     }
   }
 
-  const loading = type === "candidates" ? candidatesQuery.isPending : employeesQuery.isPending;
-  const failed = type === "candidates" ? candidatesQuery.isError : employeesQuery.isError;
+  const activeQuery = { candidates: candidatesQuery, employees: employeesQuery, admins: adminsQuery }[type];
+  const loading = activeQuery.isPending;
+  const failed = activeQuery.isError;
+  const rowCount = { candidates: candidates.length, employees: employees.length, admins: admins.length }[type];
   const pendingSave =
     mutations.createCandidate.isPending || mutations.updateCandidate.isPending ||
-    mutations.createEmployee.isPending || mutations.updateEmployee.isPending;
+    mutations.createEmployee.isPending || mutations.updateEmployee.isPending ||
+    mutations.createAdmin.isPending || mutations.updateAdmin.isPending;
 
   return (
-    <AppShell title="Users" description="Invite and manage candidate and employee access.">
+    <AppShell title="Users" description="Invite and manage candidate, employee and admin access.">
       <AdminNav />
       <div className="mb-4 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div className="flex rounded-lg border border-border bg-surface p-1">
-          {(["candidates", "employees"] as const).map((value) => (
+          {(["candidates", "employees", "admins"] as const).map((value) => (
             <button key={value} type="button" onClick={() => setType(value)} className={`rounded-md px-4 py-2 text-sm font-semibold capitalize ${type === value ? "bg-muted text-foreground" : "text-muted-foreground"}`}>{value}</button>
           ))}
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
           <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Search ${type}…`} className="h-10 rounded-[4px] border border-border bg-surface px-3.5 text-sm outline-none focus:border-ring focus:ring-4 focus:ring-ring/18 sm:w-64" />
-          <button type="button" onClick={() => setEditor({ type: type === "candidates" ? "candidate" : "employee" })} className="h-10 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-foreground hover:bg-accent-strong">+ Invite {type === "candidates" ? "candidate" : "employee"}</button>
+          <button type="button" onClick={() => setEditor({ type: SINGULAR[type] })} className="h-10 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-foreground hover:bg-accent-strong">+ Invite {SINGULAR[type]}</button>
         </div>
       </div>
       {message ? <p role="status" className="mb-4 rounded-lg bg-success/10 px-4 py-3 text-sm text-success">{message}</p> : null}
@@ -242,7 +281,7 @@ export function AdminUsersPage() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-left text-sm">
               <thead><tr className="border-b-2 border-foreground/80 bg-muted/45">
-                {["Name", "Email", type === "candidates" ? "Primary role" : "Employee code", "Status", "Actions"].map((heading) => <th key={heading} className="px-5 py-3 font-mono text-[10.5px] uppercase tracking-[0.12em] font-medium text-muted-foreground">{heading}</th>)}
+                {["Name", "Email", { candidates: "Primary role", employees: "Employee code", admins: "Added" }[type], "Status", "Actions"].map((heading) => <th key={heading} className="px-5 py-3 font-mono text-[10.5px] uppercase tracking-[0.12em] font-medium text-muted-foreground">{heading}</th>)}
               </tr></thead>
               <tbody>
                 {type === "candidates" ? candidates.map((record) => (
@@ -251,6 +290,12 @@ export function AdminUsersPage() {
                     <td className="px-5 py-4"><span className={`inline-flex rounded-[3px] border px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.08em] ${record.user.isActive ? "border-success/40 text-success" : "border-border text-muted-foreground"}`}>{record.user.isActive ? "Active" : "Disabled"}</span></td>
                     <td className="whitespace-nowrap px-5 py-4"><div className="flex items-center gap-2"><button type="button" onClick={() => setEditor({ type: "candidate", record })} className={ACTION_BTN}>Edit</button><button type="button" onClick={() => void resetPassword(record, "candidate")} className={ACTION_BTN}>Reset / Resend</button>{record.user.isActive ? <button type="button" onClick={() => setDisableTarget({ type: "candidate", id: record.id, name: record.user.name })} className={ACTION_BTN_DANGER}>Disable</button> : null}</div></td>
                   </tr>
+                )) : type === "admins" ? admins.map((record) => (
+                  <tr key={record.id} className="border-b border-border/70 last:border-0">
+                    <td className="px-5 py-4 font-semibold">{record.name}</td><td className="px-5 py-4 text-muted-foreground">{record.email}</td><td className="px-5 py-4 font-mono text-muted-foreground">{new Date(record.createdAt).toLocaleDateString()}</td>
+                    <td className="px-5 py-4"><span className={`inline-flex rounded-[3px] border px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-[0.08em] ${record.isActive ? "border-success/40 text-success" : "border-border text-muted-foreground"}`}>{record.isActive ? "Active" : "Disabled"}</span></td>
+                    <td className="whitespace-nowrap px-5 py-4"><div className="flex items-center gap-2"><button type="button" onClick={() => setEditor({ type: "admin", record })} className={ACTION_BTN}>Edit</button></div></td>
+                  </tr>
                 )) : employees.map((record) => (
                   <tr key={record.id} className="border-b border-border/70 last:border-0">
                     <td className="px-5 py-4 font-semibold">{record.user.name}</td><td className="px-5 py-4 text-muted-foreground">{record.user.email}</td><td className="px-5 py-4 font-mono text-muted-foreground">{record.employeeCode}</td>
@@ -258,7 +303,7 @@ export function AdminUsersPage() {
                     <td className="whitespace-nowrap px-5 py-4"><div className="flex items-center gap-2"><button type="button" onClick={() => setEditor({ type: "employee", record })} className={ACTION_BTN}>Edit</button><button type="button" onClick={() => void resetPassword(record, "employee")} className={ACTION_BTN}>Reset</button>{record.user.isActive ? <button type="button" onClick={() => setDisableTarget({ type: "employee", id: record.id, name: record.user.name })} className={ACTION_BTN_DANGER}>Disable</button> : null}</div></td>
                   </tr>
                 ))}
-                {(type === "candidates" ? candidates : employees).length === 0 ? <tr><td colSpan={5} className="p-12 text-center text-muted-foreground">No matching {type}.</td></tr> : null}
+                {rowCount === 0 ? <tr><td colSpan={5} className="p-12 text-center text-muted-foreground">No matching {type}.</td></tr> : null}
               </tbody>
             </table>
           </div>
@@ -272,13 +317,22 @@ export function AdminUsersPage() {
           onSaveCandidate={async (input) => {
             if (editor.type !== "candidate") return;
             if (editor.record) await mutations.updateCandidate.mutateAsync({ id: editor.record.id, input });
-            else reportInvite(input.email, await mutations.createCandidate.mutateAsync(input));
+            else reportInvite(input.email, await mutations.createCandidate.mutateAsync(input), Boolean(input.password));
+            if (editor.record && input.password) setMessage(`Password updated for ${input.email}.`);
             setEditor(null);
           }}
           onSaveEmployee={async (input) => {
             if (editor.type !== "employee") return;
             if (editor.record) await mutations.updateEmployee.mutateAsync({ id: editor.record.id, input });
-            else reportInvite(input.email, await mutations.createEmployee.mutateAsync(input));
+            else reportInvite(input.email, await mutations.createEmployee.mutateAsync(input), Boolean(input.password));
+            if (editor.record && input.password) setMessage(`Password updated for ${input.email}.`);
+            setEditor(null);
+          }}
+          onSaveAdmin={async (input) => {
+            if (editor.type !== "admin") return;
+            if (editor.record) await mutations.updateAdmin.mutateAsync({ id: editor.record.id, input });
+            else reportInvite(input.email, await mutations.createAdmin.mutateAsync(input), Boolean(input.password));
+            if (editor.record && input.password) setMessage(`Password updated for ${input.email}.`);
             setEditor(null);
           }}
         />

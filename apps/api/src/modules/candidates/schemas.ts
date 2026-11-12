@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { adminChosenPassword } from "../users/schemas.js";
 
 const optionalText = z.string().trim().min(1).optional();
 const optionalEmail = z
@@ -25,6 +26,7 @@ export const createCandidateSchema = z.object({
   address: optionalText,
   primaryRole: optionalText,
   experience: optionalText,
+  password: adminChosenPassword,
 });
 
 export const updateCandidateSchema = createCandidateSchema

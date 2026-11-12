@@ -9,6 +9,7 @@ import { AppError } from "./lib/errors.js";
 import { applicationRoutes } from "./modules/applications/routes.js";
 import { assignmentRoutes } from "./modules/assignments/routes.js";
 import { auditRoutes } from "./modules/audit/routes.js";
+import { adminRoutes } from "./modules/admins/routes.js";
 import { authRoutes } from "./modules/auth/routes.js";
 import { candidateRoutes } from "./modules/candidates/routes.js";
 import { employeeRoutes } from "./modules/employees/routes.js";
@@ -76,6 +77,7 @@ export async function buildApp() {
   });
 
   await app.register(authRoutes, { prefix: "/api/auth" });
+  await app.register(adminRoutes, { prefix: "/api/admins" });
   await app.register(applicationRoutes, { prefix: "/api/applications" });
   await app.register(assignmentRoutes, { prefix: "/api/assignments" });
   await app.register(auditRoutes, { prefix: "/api/audit-logs" });

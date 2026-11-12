@@ -63,6 +63,8 @@ export interface AuditLogPage {
 
 export interface CandidateInput {
   name: string;
+  /** Admin-set password: the account is usable at once and no email is sent. */
+  password?: string;
   firstName?: string;
   lastName?: string;
   email: string;
@@ -76,6 +78,7 @@ export interface CandidateInput {
 
 export interface EmployeeInput {
   name: string;
+  password?: string;
   firstName?: string;
   lastName?: string;
   email: string;
@@ -145,12 +148,39 @@ export function useAuditActions() {
   });
 }
 
+export interface AdminAccount {
+  id: string;
+  name: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string;
+  isActive: boolean;
+  createdAt: string;
+  inviteEmailSent?: boolean;
+}
+
+export interface AdminInput {
+  name: string;
+  firstName?: string;
+  lastName?: string;
+  email: string;
+  password?: string;
+}
+
+export function useAdminAccounts() {
+  return useQuery({
+    queryKey: ["admin", "admins"],
+    queryFn: () => api<{ admins: AdminAccount[] }>("/api/admins"),
+  });
+}
+
 export function useAdminUserMutations() {
   const queryClient = useQueryClient();
   const refresh = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ["admin", "candidates"] }),
       queryClient.invalidateQueries({ queryKey: ["admin", "employees"] }),
+      queryClient.invalidateQueries({ queryKey: ["admin", "admins"] }),
       queryClient.invalidateQueries({ queryKey: ["admin", "stats"] }),
       queryClient.invalidateQueries({ queryKey: ["admin", "audit"] }),
     ]);
@@ -208,7 +238,20 @@ export function useAdminUserMutations() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "audit"] }),
   });
 
+  const createAdmin = useMutation({
+    mutationFn: (input: AdminInput) =>
+      api<AdminAccount>("/api/admins", { method: "POST", body: JSON.stringify(input) }),
+    onSuccess: refresh,
+  });
+  const updateAdmin = useMutation({
+    mutationFn: ({ id, input }: { id: string; input: AdminInput }) =>
+      api<AdminAccount>(`/api/admins/${id}`, { method: "PATCH", body: JSON.stringify(input) }),
+    onSuccess: refresh,
+  });
+
   return {
+    createAdmin,
+    updateAdmin,
     createCandidate,
     updateCandidate,
     disableCandidate,

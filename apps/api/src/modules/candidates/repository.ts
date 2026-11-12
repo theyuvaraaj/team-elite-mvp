@@ -1,8 +1,10 @@
+import { hashPassword } from "../../lib/password.js";
 import { prisma } from "../../lib/prisma.js";
 import { createPasswordToken } from "../users/invite.js";
 import {
   createUser,
   disableUser,
+  setPasswordByAdmin,
   updateUser,
 } from "../users/repository.js";
 import type {
@@ -59,6 +61,8 @@ export function findCandidate(id: string) {
 }
 
 export async function createCandidate(data: CreateCandidateInput) {
+  // Hash outside the transaction: argon2 is deliberately slow.
+  const passwordHash = data.password ? await hashPassword(data.password) : null;
   return prisma.$transaction(async (tx) => {
     const user = await createUser(tx, {
       name: data.name,
@@ -66,6 +70,7 @@ export async function createCandidate(data: CreateCandidateInput) {
       lastName: data.lastName,
       email: data.email,
       role: "CANDIDATE",
+      passwordHash,
     });
     const candidate = await tx.candidate.create({
       data: {
@@ -79,7 +84,8 @@ export async function createCandidate(data: CreateCandidateInput) {
       },
       include: candidateInclude,
     });
-    const rawToken = await createPasswordToken(tx, user.id, "INVITE");
+    // No invite link when the admin already set a password.
+    const rawToken = passwordHash ? null : await createPasswordToken(tx, user.id, "INVITE");
     return { candidate, rawToken };
   });
 }
@@ -88,9 +94,11 @@ export async function updateCandidate(
   id: string,
   data: UpdateCandidateInput,
 ) {
+  const passwordHash = data.password ? await hashPassword(data.password) : null;
   return prisma.$transaction(async (tx) => {
     const current = await tx.candidate.findUnique({ where: { id } });
     if (!current) return null;
+    if (passwordHash) await setPasswordByAdmin(tx, current.userId, passwordHash);
 
     const userFields: {
       name?: string;

@@ -171,6 +171,22 @@ UI: `apps/web/src/features/employee/ResumeOptimizer.tsx`, mounted on the shared
 candidate-detail page (employee: `/employee/candidates/:id`, admin:
 `/admin/candidates/:id`).
 
+## Admin accounts and admin-set passwords
+
+Admins can invite other admins (Users page, **Admins** tab; API
+`GET/POST /api/admins`, `PATCH /api/admins/:id`, admin-only).
+
+Every invite form (candidate, employee, admin) has an optional **password**.
+If set, the account can sign in immediately and no invite email is sent; if
+blank, the emailed invite link works as before. The same field on **Edit**
+replaces the password, invalidates any outstanding invite or reset link, and
+signs the user out everywhere (`setPasswordByAdmin` in
+`modules/users/repository.ts`). Minimum 8 characters, as for self-set
+passwords. Each change is audit-logged (`*_PASSWORD_SET`). This exists so the
+app can be tested before a sending domain is verified in Resend.
+
+Not built: disabling or removing admins.
+
 ## Candidate short codes
 
 `Candidate.code` is a 4-digit+ sequential reference (Postgres sequence
@@ -190,7 +206,7 @@ routes accept a UUID or a code.
 ## Testing
 
 ```bash
-pnpm --filter @team-elite/api test    # 88 tests (Vitest, needs postgres up)
+pnpm --filter @team-elite/api test    # 98 tests (Vitest, needs postgres up)
 pnpm --filter @team-elite/web exec vitest run   # 17 tests
 pnpm --filter @team-elite/api exec tsc --noEmit
 pnpm --filter @team-elite/web exec tsc -b
