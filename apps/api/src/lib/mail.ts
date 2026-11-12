@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { config } from "../config.js";
+import { AppError } from "./errors.js";
 
 export async function sendInviteEmail(params: {
   to: string;
@@ -27,6 +28,14 @@ export async function sendInviteEmail(params: {
   });
 
   if (error) {
-    throw new Error(`Failed to send invite email: ${error.message}`);
+    // Log Resend's reason for operators; tell the admin what happened instead
+    // of a generic 500. The commonest cause is sending from Resend's test
+    // address, which only delivers to the Resend account's own email.
+    console.error(`[mail] Resend rejected invite to ${params.to}: ${error.message}`);
+    throw new AppError(
+      502,
+      "EMAIL_DELIVERY_FAILED",
+      "The email could not be sent. Check that the sending domain is verified in Resend.",
+    );
   }
 }
