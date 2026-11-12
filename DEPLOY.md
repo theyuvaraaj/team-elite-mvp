@@ -315,7 +315,7 @@ check the troubleshooting table.
    portal as an employee. The link should start with your `VERCEL_URL`.
 6. As admin again: **Users**, toggle **Candidates**, **+ Invite candidate**.
    Then click **Assignments**, choose the employee and the candidate in the
-   two dropdowns, and click the assign button.
+   two dropdowns, and click **Create assignment**.
 7. As the employee, open the candidate, scroll to **Resume optimizer**,
    upload a resume, enter the company and the exact job title, paste a job
    description, and click **Optimize resume**. It should finish in under two
