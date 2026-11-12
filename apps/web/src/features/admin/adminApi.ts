@@ -11,6 +11,8 @@ export interface AdminStats {
 
 export interface AdminEmployee {
   id: string;
+  /** Present and false only on create, when the invite email failed. */
+  inviteEmailSent?: boolean;
   name: string;
   employeeCode: string;
   createdAt: string;

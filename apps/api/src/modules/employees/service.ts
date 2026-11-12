@@ -22,20 +22,30 @@ export async function getEmployee(id: string) {
 export async function createEmployee(
   data: CreateEmployeeInput,
   actorId: string,
+  onInviteError: (error: unknown) => void,
 ) {
   const { employee, rawToken } = await repository.createEmployee(data);
-  await deliverPasswordToken({
-    to: employee.user.email,
-    name: employee.user.name,
-    rawToken,
-  });
+  // The employee is saved either way. A failed email must not turn into an
+  // error, or a retry would hit "already exists"; the admin is told instead
+  // and can resend from the Users page.
+  let inviteEmailSent = true;
+  try {
+    await deliverPasswordToken({
+      to: employee.user.email,
+      name: employee.user.name,
+      rawToken,
+    });
+  } catch (error) {
+    inviteEmailSent = false;
+    onInviteError(error);
+  }
   await audit.log({
     userId: actorId,
     action: "EMPLOYEE_CREATED",
     entity: "Employee",
     entityId: employee.id,
   });
-  return employee;
+  return inviteEmailSent ? employee : { ...employee, inviteEmailSent: false };
 }
 
 export async function updateEmployee(

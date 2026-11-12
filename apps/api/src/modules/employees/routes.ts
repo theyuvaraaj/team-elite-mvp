@@ -30,7 +30,9 @@ export async function employeeRoutes(app: FastifyInstance): Promise<void> {
 
   app.post("/", { preHandler: adminOnly }, async (request, reply) => {
     const body = parseBody(createEmployeeSchema, request.body);
-    const employee = await service.createEmployee(body, request.user!.id);
+    const employee = await service.createEmployee(body, request.user!.id, (error) =>
+      request.log.error(error, "Employee invite email delivery failed"),
+    );
     return reply.status(201).send(employee);
   });
 

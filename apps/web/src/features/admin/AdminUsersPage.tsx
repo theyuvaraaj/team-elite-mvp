@@ -150,6 +150,19 @@ export function AdminUsersPage() {
   const [editor, setEditor] = useState<Editor | null>(null);
   const [disableTarget, setDisableTarget] = useState<DisableTarget | null>(null);
   const [message, setMessage] = useState("");
+
+  // The API saves the user even when the invite email fails, and says so.
+  function reportInvite(email: string, created: { inviteEmailSent?: boolean }) {
+    setActionError("");
+    setMessage("");
+    if (created.inviteEmailSent === false) {
+      setActionError(
+        `${email} was added, but the invite email could not be sent. Check the sending domain in Resend, then use the Reset button on their row to send it again.`,
+      );
+    } else {
+      setMessage(`Invite sent to ${email}.`);
+    }
+  }
   const [actionError, setActionError] = useState("");
   const candidatesQuery = useAdminCandidates();
   const employeesQuery = useAdminEmployees();
@@ -259,13 +272,13 @@ export function AdminUsersPage() {
           onSaveCandidate={async (input) => {
             if (editor.type !== "candidate") return;
             if (editor.record) await mutations.updateCandidate.mutateAsync({ id: editor.record.id, input });
-            else await mutations.createCandidate.mutateAsync(input);
+            else reportInvite(input.email, await mutations.createCandidate.mutateAsync(input));
             setEditor(null);
           }}
           onSaveEmployee={async (input) => {
             if (editor.type !== "employee") return;
             if (editor.record) await mutations.updateEmployee.mutateAsync({ id: editor.record.id, input });
-            else await mutations.createEmployee.mutateAsync(input);
+            else reportInvite(input.email, await mutations.createEmployee.mutateAsync(input));
             setEditor(null);
           }}
         />

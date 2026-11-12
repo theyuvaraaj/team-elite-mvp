@@ -20,6 +20,7 @@ describe("admin user management", () => {
   const resetCandidateEmail = `reset-candidate-${suffix}@teamelite.local`;
   const failedInviteEmail = `failed-invite-${suffix}@teamelite.local`;
   const employeeEmail = `employee-${suffix}@teamelite.local`;
+  const failedEmployeeEmail = `failed-employee-${suffix}@teamelite.local`;
 
   beforeAll(async () => {
     const admin = await prisma.user.create({
@@ -42,6 +43,7 @@ describe("admin user management", () => {
             resetCandidateEmail,
             failedInviteEmail,
             employeeEmail,
+            failedEmployeeEmail,
           ],
         },
       },
@@ -153,6 +155,24 @@ describe("admin user management", () => {
     expect(createResponse.statusCode).toBe(201);
     expect(createResponse.json()).toMatchObject({
       user: { email: failedInviteEmail },
+      inviteEmailSent: false,
+    });
+  });
+
+  it("saves the employee and says so when invite delivery fails", async () => {
+    sendInviteEmail.mockRejectedValueOnce(new Error("Email provider unavailable"));
+
+    const createResponse = await app.inject({
+      method: "POST",
+      url: "/api/employees",
+      headers: { cookie },
+      payload: { name: "Failed Employee", email: failedEmployeeEmail, employeeCode: `EF-${suffix}` },
+    });
+
+    // Not an error: the employee exists, so a retry would only hit "already exists".
+    expect(createResponse.statusCode).toBe(201);
+    expect(createResponse.json()).toMatchObject({
+      user: { email: failedEmployeeEmail },
       inviteEmailSent: false,
     });
   });

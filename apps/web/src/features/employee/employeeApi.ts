@@ -14,6 +14,8 @@ export interface EmployeeCandidate {
   id: string;
   /** Short, memorable reference used in URLs. */
   code: number;
+  /** Present and false only on create, when the invite email failed. */
+  inviteEmailSent?: boolean;
   email: string | null;
   phone: string | null;
   gender: string | null;
