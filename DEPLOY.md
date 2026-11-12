@@ -72,11 +72,13 @@ password. Without working email, nobody except the admin can sign in.
 
 1. Go to **https://resend.com** and sign in.
 2. In the left sidebar click **API Keys**.
-3. Click **Create API Key**.
-4. Name: `team-elite-production`. Permission: **Sending access**. Domain:
-   **All domains**. Click **Add**.
+3. Click **Create API Key** (or **Add API Key**).
+4. If a form appears, use name `team-elite-production`, permission
+   **Sending access**, domain **All domains**, then **Add**. A brand-new
+   account skips the form and shows a key straight away as part of its
+   welcome screen; that key is fine to use.
 5. The key is shown **once**. Copy it and paste it into your note as
-   `RESEND_API_KEY`.
+   `RESEND_API_KEY`. Ignore the sample code on that screen.
 
 ### 2b. Choose the sender address
 
@@ -101,9 +103,16 @@ password. Without working email, nobody except the admin can sign in.
 **If you don't have a domain yet (testing only):**
 
 Set `EMAIL_FROM = Team Elite <onboarding@resend.dev>`. Resend only delivers
-mail from that address to the email you signed up to Resend with, so you can
-test the invite flow on yourself but cannot invite anyone else. Come back and
-do the domain steps before real users join.
+mail from that address to the email you signed up to Resend with, so:
+
+- Only that one address can receive an invite. Use it for the test employee
+  in Step 7.
+- Use a **different** email for `SEED_ADMIN_EMAIL` in Step 3d. The admin never
+  needs to receive mail, and two users cannot share an email.
+- A second invited user (the test candidate) will not get an email until a
+  domain is verified.
+
+Come back and do the domain steps before real users join.
 
 ---
 
@@ -121,14 +130,25 @@ do the domain steps before real users join.
 
 ### 3b. Add the API service
 
-1. On the same canvas click **Create** (top right; it may be a **+ New**
-   button), then **GitHub Repo**.
-2. If Railway says it can't see your repositories, click
+1. If a panel for the Postgres service is open on the right, close it with
+   the **X** in its top-right corner so the whole canvas is visible. Do not
+   turn on **Public access** in the database settings; the API reaches the
+   database privately.
+2. Click **+ Create** at the top right of the canvas (older layouts call it
+   **+ New**). If you can't find it, right-click an empty part of the canvas,
+   or press **Cmd+K** and type `new service`.
+3. Choose **GitHub Repo**.
+   - If **GitHub Repo** is missing or greyed out, the Railway account is not
+     linked to GitHub or is on the limited trial, which only allows
+     databases. Click your avatar (bottom left), **Account Settings**, and
+     connect GitHub as `theyuvaraaj`; if it still isn't offered, upgrade the
+     workspace to the Hobby plan.
+4. If Railway says it can't see your repositories, click
    **Configure GitHub App**, choose the `theyuvaraaj` account, select
    **Only select repositories**, tick `team-elite-mvp`, and click
    **Install & Authorize**. You return to Railway.
-3. Pick **theyuvaraaj/team-elite-mvp**.
-4. A second box appears on the canvas, named after the repo. It starts a
+5. Pick **theyuvaraaj/team-elite-mvp**.
+6. A second box appears on the canvas, named after the repo. It starts a
    build straight away and that first build will fail or crash, because the
    variables aren't set yet. That is expected. Carry on.
 
