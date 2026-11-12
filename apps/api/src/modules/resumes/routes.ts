@@ -1,4 +1,5 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
+import { config } from "../../config.js";
 import { z } from "zod";
 import { AppError } from "../../lib/errors.js";
 import type { AuthUser } from "../../lib/session.js";
@@ -60,7 +61,19 @@ async function assertCanAccessCandidate(user: AuthUser, candidateId: string) {
 export async function resumeRoutes(app: FastifyInstance): Promise<void> {
   const staffOnly = [requireAuth, requireRole("ADMIN", "EMPLOYEE")];
 
-  app.post("/:id/resumes/optimize", { preHandler: staffOnly }, async (request, reply) => {
+  // Each optimisation makes several billable model calls, so it is limited
+  // per signed-in user. The limiter runs after staffOnly, so the user is known.
+  const optimizeLimit = {
+    max: config.RESUME_OPTIMIZE_PER_HOUR,
+    timeWindow: "1 hour",
+    hook: "preHandler" as const,
+    keyGenerator: (request: FastifyRequest) => `optimize:${request.user?.id ?? request.ip}`,
+  };
+
+  app.post(
+    "/:id/resumes/optimize",
+    { preHandler: staffOnly, config: { rateLimit: optimizeLimit } },
+    async (request, reply) => {
     const { id } = await ids(request.params);
     const user = request.user!;
     await assertCanAccessCandidate(user, id);

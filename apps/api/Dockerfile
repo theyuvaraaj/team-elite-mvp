@@ -18,6 +18,18 @@ COPY apps/api ./apps/api
 
 RUN pnpm --filter @team-elite/api exec prisma generate
 
+# Bake Tectonic's TeX packages into the image so the first PDF after a deploy
+# is fast. The values below only satisfy config validation for this one build
+# step; none of them reach the running container. If Tectonic is missing the
+# step is skipped and PDFs use the pdfkit fallback.
+RUN cd apps/api && DATABASE_URL=postgresql://build SESSION_SECRET=build \
+    WEB_ORIGIN=http://localhost API_ORIGIN=http://localhost EMAIL_FROM=build@example.com \
+    INVITE_TOKEN_TTL_HOURS=1 SESSION_TTL_DAYS=1 \
+    SEED_ADMIN_EMAIL=build@example.com SEED_ADMIN_PASSWORD=build-only-value \
+    RESUME_LATEX_TIMEOUT_MS=300000 \
+    pnpm exec tsx scripts/warm-latex.ts \
+  || echo "LaTeX warm-up skipped; resume PDFs will use the pdfkit fallback"
+
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 

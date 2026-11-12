@@ -190,7 +190,7 @@ routes accept a UUID or a code.
 ## Testing
 
 ```bash
-pnpm --filter @team-elite/api test    # 85 tests (Vitest, needs postgres up)
+pnpm --filter @team-elite/api test    # 88 tests (Vitest, needs postgres up)
 pnpm --filter @team-elite/web exec vitest run   # 17 tests
 pnpm --filter @team-elite/api exec tsc --noEmit
 pnpm --filter @team-elite/web exec tsc -b
@@ -219,8 +219,12 @@ offline (stub optimizer) and clean up their users in `afterAll`.
 
 - Branch/target: **`main`** (personal remote `theyuvaraaj/team-elite-mvp`,
   SSH host `github-personal`). Latest work is on `main`.
-- Not deployed. `apps/api/Dockerfile` installs Tectonic (falls back if absent);
-  `apps/web/vercel.json`, `apps/api/railway.toml` present but unconfigured.
+- Not deployed yet; steps are in `DEPLOY.md`. The production image has been
+  built and booted locally against an empty Postgres 16: migrations apply, the
+  first admin is created from `SEED_ADMIN_*` when none exists, the demo seed
+  refuses to run, and LaTeX PDFs render with no network because the image
+  build warms Tectonic's cache (`apps/api/scripts/warm-latex.ts`).
+  `apps/web/vercel.json` still needs the Railway URL.
 - Everything green: 52 api + 17 web tests, both apps typecheck clean.
 
 ## Possible next steps

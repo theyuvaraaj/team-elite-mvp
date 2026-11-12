@@ -36,4 +36,17 @@ describe("auth rate limits", () => {
       expect(response.headers["retry-after"]).toBeDefined();
     },
   );
+
+  it("counts login attempts per account, so one user cannot lock out another", async () => {
+    const attempt = (email: string) =>
+      app.inject({ method: "POST", url: "/api/auth/login", payload: { email, password: "wrong-password" } });
+    for (let i = 0; i < 5; i += 1) {
+      expect((await attempt("victim@example.com")).statusCode).not.toBe(429);
+    }
+    expect((await attempt("victim@example.com")).statusCode).toBe(429);
+    // Same client, different account: unaffected.
+    expect((await attempt("someone.else@example.com")).statusCode).not.toBe(429);
+    // Case and whitespace do not open a second bucket for the same account.
+    expect((await attempt(" Victim@Example.com ")).statusCode).toBe(429);
+  });
 });

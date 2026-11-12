@@ -59,6 +59,11 @@ async function purgeTestData() {
 }
 
 async function main() {
+  // The demo accounts below use passwords published in the repo. Production
+  // gets its admin from the startup bootstrap in src/server.ts instead.
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Refusing to seed demo data in production");
+  }
   const email = process.env.SEED_ADMIN_EMAIL;
   const password = process.env.SEED_ADMIN_PASSWORD;
   if (!email || !password) {

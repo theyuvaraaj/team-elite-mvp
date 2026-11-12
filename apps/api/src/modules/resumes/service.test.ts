@@ -135,3 +135,33 @@ it("falls back to the heuristics when skill extraction fails", async () => {
   });
   expect(result.atsScore).toBeLessThan(90); // still scored, request not failed
 });
+
+it("keeps the first draft when a later refinement pass fails", async () => {
+  let call = 0;
+  const optimizer: ResumeOptimizer = {
+    optimize: vi.fn(async () => {
+      if (call++ === 0) return "Jane\nSummary\nx\nExperience\n- y\nEducation\nz";
+      throw new Error("upstream down");
+    }),
+  };
+  const result = await optimizeResume({
+    candidateId: "c1", createdById: "u1", file: baseFile,
+    jobDescription: jd, companyName: "Acme", optimizer,
+  });
+  expect(optimizer.optimize).toHaveBeenCalledTimes(2);
+  expect(result.atsScore).toBeGreaterThan(0); // the weak first draft was stored, not lost
+});
+
+it("still fails the request when the very first pass fails", async () => {
+  const optimizer: ResumeOptimizer = {
+    optimize: vi.fn(async () => {
+      throw new Error("upstream down");
+    }),
+  };
+  await expect(
+    optimizeResume({
+      candidateId: "c1", createdById: "u1", file: baseFile,
+      jobDescription: jd, companyName: "Acme", optimizer,
+    }),
+  ).rejects.toThrow("upstream down");
+});

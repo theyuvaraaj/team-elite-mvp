@@ -20,13 +20,19 @@ const envSchema = z.object({
   RESUME_SCORE_TARGET: z.coerce.number().int().min(0).max(100).default(95),
   RESUME_MAX_UPLOAD_MB: z.coerce.number().int().positive().default(5),
   RESUME_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(55000),
-  /** Tried when the primary model keeps returning transient errors. */
   /** Comma-separated models tried, in order, when earlier ones fail. */
   RESUME_FALLBACK_MODELS: z
     .string()
     .default("gemini-3.5-flash-lite,gemini-flash-lite-latest,gemini-3-flash-preview"),
   /** Extra attempts after the first, for transient 429/503 upstream errors. */
   RESUME_MAX_RETRIES: z.coerce.number().int().min(0).max(5).default(2),
+  /** Optimisations one user may start per hour; each makes several billable model calls. */
+  RESUME_OPTIMIZE_PER_HOUR: z.coerce.number().int().positive().default(20),
+  /**
+   * Wall-clock budget for one optimisation. Hosting proxies cut a request off
+   * at 120 seconds, so the work must finish, or fail cleanly, before that.
+   */
+  RESUME_TOTAL_BUDGET_MS: z.coerce.number().int().positive().default(105000),
   TECTONIC_BIN: z.string().default("tectonic"),
   RESUME_LATEX_TIMEOUT_MS: z.coerce.number().int().positive().default(45000),
 });

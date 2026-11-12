@@ -34,11 +34,13 @@ export interface OptimizeInput {
   gaps?: string[];
   /** Curated skill list for this job description, when one was extracted. */
   requiredSkills?: JdSkills;
+  /** Epoch ms after which no further model attempt may start. */
+  deadlineAt?: number;
 }
 export interface ResumeOptimizer {
   optimize(input: OptimizeInput): Promise<string>;
   /** Optional: list the skills a scanner would match from the job description. */
-  extractSkills?(jobDescription: string): Promise<JdSkills>;
+  extractSkills?(jobDescription: string, deadlineAt?: number): Promise<JdSkills>;
 }
 
 const FORMAT_RULES = [
@@ -271,6 +273,9 @@ export function appendMissingSkills(markdown: string, hard: string[], soft: stri
 // same skill list within a process; persist it if scores must survive restarts.
 const skillsCache = new Map<string, JdSkills>();
 
+/** Shortest window worth starting a model call in. */
+const MIN_ATTEMPT_MS = 8000;
+
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 
 function isRetryable(error: unknown): boolean {
@@ -286,19 +291,22 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export class GeminiOptimizer implements ResumeOptimizer {
   optimize(input: OptimizeInput): Promise<string> {
-    return this.run(buildPrompt(input));
+    return this.run(buildPrompt(input), input.deadlineAt);
   }
 
-  async extractSkills(jobDescription: string): Promise<JdSkills> {
+  async extractSkills(jobDescription: string, deadlineAt?: number): Promise<JdSkills> {
     const cached = skillsCache.get(jobDescription);
     if (cached) return cached;
-    const skills = parseSkillsJson(await this.run(buildSkillsPrompt(jobDescription)), jobDescription);
+    const skills = parseSkillsJson(
+      await this.run(buildSkillsPrompt(jobDescription), deadlineAt),
+      jobDescription,
+    );
     if (skillsCache.size >= 50) skillsCache.clear();
     skillsCache.set(jobDescription, skills);
     return skills;
   }
 
-  private async run(prompt: string): Promise<string> {
+  private async run(prompt: string, deadlineAt?: number): Promise<string> {
     // Free-tier model availability churns constantly: a model that worked an
     // hour ago can start returning 503 or hanging outright. Walk a list rather
     // than pinning one name.
@@ -313,8 +321,14 @@ export class GeminiOptimizer implements ResumeOptimizer {
     for (let attempt = 1; attempt <= attempts; attempt++) {
       // Move to the next model on each attempt, sticking on the last one.
       const model = models[Math.min(attempt - 1, models.length - 1)]!;
+      // Never start an attempt that cannot finish inside the request budget,
+      // and never let one run past it.
+      const remaining = deadlineAt === undefined ? Infinity : deadlineAt - Date.now();
+      if (remaining < MIN_ATTEMPT_MS) {
+        throw lastError ?? new AppError(504, "OPTIMIZER_TIMEOUT", "The AI service timed out. Please try again.");
+      }
       try {
-        return await this.generate(prompt, model);
+        return await this.generate(prompt, model, Math.min(config.RESUME_REQUEST_TIMEOUT_MS, remaining));
       } catch (error) {
         lastError = error;
         // Gemini's free tier throws transient 503 "high demand" often enough
@@ -328,11 +342,10 @@ export class GeminiOptimizer implements ResumeOptimizer {
     throw lastError;
   }
 
-  private async generate(prompt: string, modelName: string): Promise<string> {
+  private async generate(prompt: string, modelName: string, timeoutMs: number): Promise<string> {
     if (!config.GEMINI_API_KEY) {
       throw new AppError(503, "OPTIMIZER_UNCONFIGURED", "Resume optimization is not configured (missing GEMINI_API_KEY)");
     }
-    const timeoutMs = config.RESUME_REQUEST_TIMEOUT_MS;
     const client = new GoogleGenerativeAI(config.GEMINI_API_KEY);
     // SDK-level timeout aborts the underlying request.
     const model = client.getGenerativeModel(

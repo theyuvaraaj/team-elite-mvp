@@ -1,4 +1,4 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import { config } from "../../config.js";
 import { audit } from "../../lib/audit.js";
 import {
@@ -26,6 +26,17 @@ const AUTH_RATE_LIMIT = {
   timeWindow: "1 minute",
 };
 
+// Login attempts are counted per account being tried, so a forged or shared
+// IP neither bypasses the limit nor lets one user lock out everyone else.
+const LOGIN_RATE_LIMIT = {
+  ...AUTH_RATE_LIMIT,
+  hook: "preHandler" as const, // the body is parsed by then
+  keyGenerator: (request: FastifyRequest) => {
+    const email = (request.body as { email?: unknown } | undefined)?.email;
+    return typeof email === "string" && email ? `login:${email.trim().toLowerCase()}` : request.ip;
+  },
+};
+
 const COOKIE_OPTIONS = {
   path: "/",
   httpOnly: true,
@@ -41,7 +52,7 @@ function publicUser(user: AuthUser) {
 export async function authRoutes(app: FastifyInstance): Promise<void> {
   app.post(
     "/login",
-    { config: { rateLimit: AUTH_RATE_LIMIT } },
+    { config: { rateLimit: LOGIN_RATE_LIMIT } },
     async (request, reply) => {
       const body = parseBody(loginSchema, request.body);
       const user = await authenticateUser(body.email, body.password);

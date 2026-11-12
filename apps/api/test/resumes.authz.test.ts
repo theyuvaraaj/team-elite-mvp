@@ -67,6 +67,8 @@ describe("resume optimizer authorization", () => {
   it("allows an assigned employee and stores the resume", async () => {
     const res = await optimize(employeeCookie);
     expect(res.statusCode).toBe(201);
+    // The billable endpoint is limited per signed-in user.
+    expect(Number(res.headers["x-ratelimit-limit"])).toBeGreaterThan(0);
     expect(res.json().atsScore).toBeGreaterThan(0);
     const list = await app.inject({ method: "GET", url: `/api/candidates/${candidateId}/resumes`, headers: { cookie: employeeCookie } });
     expect(list.json().resumes.length).toBeGreaterThan(0);

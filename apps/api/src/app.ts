@@ -16,7 +16,10 @@ import { resumeRoutes } from "./modules/resumes/routes.js";
 import { statsRoutes } from "./modules/stats/routes.js";
 
 export async function buildApp() {
-  const app = Fastify({ logger: true });
+  // In production the app sits behind the host's proxy, so request.ip must
+  // come from X-Forwarded-For or every client shares one address. Rate limits
+  // that matter are keyed by account, not IP, because that header can be forged.
+  const app = Fastify({ logger: true, trustProxy: config.NODE_ENV === "production" });
 
   await app.register(cookie);
   await app.register(multipart, {

@@ -13,6 +13,11 @@ import * as repository from "./repository.js";
 import { markdownToPlainText } from "./render.js";
 import { extractJobTitle, scoreResume, type ScoreBreakdown } from "./scorer.js";
 
+/** Ceiling for the skill-extraction call. */
+const SKILLS_BUDGET_MS = 30000;
+/** Room a refinement pass needs; a typical pass takes 15 to 45 seconds. */
+const REFINE_PASS_MS = 45000;
+
 export interface OptimizeParams {
   candidateId: string;
   createdById: string;
@@ -32,9 +37,17 @@ export async function optimizeResume(params: OptimizeParams) {
   // One curated skill list per request: the generator is told to cover it and
   // the scorer grades against it. If extraction fails we fall back to the
   // frequency heuristics rather than failing the request.
+  // ponytail: one synchronous request under a wall-clock budget. Move to a
+  // background job with polling if optimisations need longer than the proxy allows.
+  const deadlineAt = Date.now() + config.RESUME_TOTAL_BUDGET_MS;
+
   let skills: JdSkills | undefined;
   try {
-    const extracted = await optimizer.extractSkills?.(params.jobDescription);
+    // Capped so a slow extraction cannot eat the generation budget.
+    const extracted = await optimizer.extractSkills?.(
+      params.jobDescription,
+      Math.min(deadlineAt, Date.now() + SKILLS_BUDGET_MS),
+    );
     if (extracted?.hard.length) skills = extracted;
   } catch (error) {
     console.error("[optimizer] skill extraction failed, using heuristics:", String(error).slice(0, 200));
@@ -51,17 +64,27 @@ export async function optimizeResume(params: OptimizeParams) {
   let gaps: string[] | undefined;
 
   for (let pass = 0; pass < config.RESUME_MAX_REFINE_PASSES; pass++) {
-    const markdown = await optimizer.optimize({
-      resumeText,
-      jobDescription: params.jobDescription,
-      companyName: params.companyName,
-      jobTitle: params.jobTitle,
-      inferredJobTitle,
-      enhancements: params.enhancements,
-      requiredSkills: skills,
-      missingKeywords,
-      gaps,
-    });
+    // Refine only while there is room for a whole pass.
+    if (best && deadlineAt - Date.now() < REFINE_PASS_MS) break;
+    let markdown: string;
+    try {
+      markdown = await optimizer.optimize({
+        resumeText,
+        jobDescription: params.jobDescription,
+        companyName: params.companyName,
+        jobTitle: params.jobTitle,
+        inferredJobTitle,
+        enhancements: params.enhancements,
+        requiredSkills: skills,
+        missingKeywords,
+        gaps,
+        deadlineAt,
+      });
+    } catch (error) {
+      // A failed refinement must not throw away a draft we already have.
+      if (best) break;
+      throw error;
+    }
     // Score the text an ATS would extract from the rendered file, not the
     // markdown source (whose ** markers become real bold when rendered).
     const scored = score(markdown);
