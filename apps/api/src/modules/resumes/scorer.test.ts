@@ -67,6 +67,46 @@ describe("extractKeywords", () => {
   });
 });
 
+describe("curated skill list", () => {
+  const jd = `DevOps Engineer. The platform gets built by everyone, which matters more than
+    anything. You will work with GCP, write documentation, and encourage teamwork.`;
+  const resume = [
+    "Jane Doe",
+    "jane@x.com | +1 555 0100 | Austin, TX | linkedin.com/in/jane",
+    "DevOps Engineer",
+    "Summary",
+    "DevOps Engineer with GCP depth and a habit of teamwork.",
+    "Professional Experience",
+    "- Cut deploy time 45% for 40000 users.",
+    "Education",
+    "BS",
+  ].join("\n");
+  const skills = { hard: ["GCP", "documentation"], soft: ["encourage teamwork"] };
+
+  it("grades only the curated skills, ignoring job-description prose", () => {
+    const result = scoreResume(resume, jd, { skills });
+    expect(result.breakdown.keywords.missing).toEqual(["documentation"]);
+    expect(result.breakdown.keywords.earned).toBe(16); // one of two equally weighted skills
+  });
+
+  it("needs the exact soft-skill phrase, not a near miss", () => {
+    // The resume says "teamwork"; the posting's phrase is "encourage teamwork".
+    const result = scoreResume(resume, jd, { skills });
+    expect(result.breakdown.softSkills.missing).toEqual(["encourage teamwork"]);
+  });
+
+  it("weights a skill by how often the posting names it", () => {
+    const repeated = "Kubernetes. Kubernetes. Kubernetes. Also documentation.";
+    const hasK8s = scoreResume("Jane\nKubernetes", repeated, {
+      skills: { hard: ["Kubernetes", "documentation"], soft: [] },
+    });
+    const hasDocs = scoreResume("Jane\ndocumentation", repeated, {
+      skills: { hard: ["Kubernetes", "documentation"], soft: [] },
+    });
+    expect(hasK8s.breakdown.keywords.earned).toBeGreaterThan(hasDocs.breakdown.keywords.earned);
+  });
+});
+
 describe("acronym skills", () => {
   const jd = `DevOps Engineer. Work with GCP and AWS, manage Networking, build
     CI/CD pipelines, define SLO targets. CEO approval needed. HR will contact you.`;

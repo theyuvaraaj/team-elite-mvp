@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { config } from "../../config.js";
 import { AppError } from "../../lib/errors.js";
+import { containsTerm } from "./scorer.js";
 
 /** Opt-in enhancements. All default OFF — the caller must ask for them. */
 export interface OptimizeEnhancements {
@@ -14,6 +15,12 @@ export interface OptimizeEnhancements {
   location?: string | null;
 }
 
+/** Skills a scanner would match from the job description, in its own wording. */
+export interface JdSkills {
+  hard: string[];
+  soft: string[];
+}
+
 export interface OptimizeInput {
   resumeText: string;
   jobDescription: string;
@@ -25,8 +32,14 @@ export interface OptimizeInput {
   missingKeywords?: string[];
   /** Specific, scored gaps from the previous pass. */
   gaps?: string[];
+  /** Curated skill list for this job description, when one was extracted. */
+  requiredSkills?: JdSkills;
 }
-export interface ResumeOptimizer { optimize(input: OptimizeInput): Promise<string> }
+export interface ResumeOptimizer {
+  optimize(input: OptimizeInput): Promise<string>;
+  /** Optional: list the skills a scanner would match from the job description. */
+  extractSkills?(jobDescription: string): Promise<JdSkills>;
+}
 
 const FORMAT_RULES = [
   "Formatting (strict — the output is rendered to PDF/DOCX by a simple parser):",
@@ -99,6 +112,16 @@ export function buildPrompt(input: OptimizeInput): string {
     );
   }
   const missing = feedback.join("\n");
+  const required = input.requiredSkills;
+  const requiredBlock = required
+    ? [
+        "REQUIRED SKILLS (a scanner will look for each of these, spelled exactly like this):",
+        `- Hard skills, every one must appear verbatim, in the Skills section and where natural in bullets: ${required.hard.join(", ")}`,
+        ...(required.soft.length
+          ? [`- Soft skills, use each exact phrase once inside an achievement bullet or the summary: ${required.soft.join(", ")}`]
+          : []),
+      ]
+    : [];
   const strategy = [
     "You are an elite resume writer. Rewrite the BASE RESUME into a compelling, ATS-optimized resume that positions the candidate as a strong, obvious match for the JOB DESCRIPTION at " + input.companyName + ". Be confident and aggressive in tailoring to maximize interview callbacks.",
     "Rules:",
@@ -112,6 +135,7 @@ export function buildPrompt(input: OptimizeInput): string {
   return [
     ...strategy,
     ...(targetTitle ? [`TARGET JOB TITLE (use verbatim): ${targetTitle}`] : []),
+    ...requiredBlock,
     ...ATS_RULES,
     ...enhancementRules(input),
     ...FORMAT_RULES,
@@ -124,6 +148,128 @@ export function buildPrompt(input: OptimizeInput): string {
     input.jobDescription,
   ].join("\n");
 }
+
+export function buildSkillsPrompt(jobDescription: string): string {
+  return [
+    "Extract the skills an ATS resume scanner such as Jobscan would match from the job description below.",
+    'Return ONLY JSON in this shape: {"hard": string[], "soft": string[]}',
+    "- hard: tools, technologies, platforms, cloud providers, languages, methodologies, practices and domain knowledge (for example Kubernetes, CI/CD, version control, documentation, networking, access management).",
+    "- soft: interpersonal traits and behaviours (for example collaboration, leadership skills, encourage teamwork, supervise, reliability).",
+    "- Copy each skill EXACTLY as the job description writes it: same words, same casing, 1 to 3 words each.",
+    "- Scanners index short generic terms too. Include single words such as automation, security, workflow, DevOps, networking, testing as hard skills, and single words such as reliability, supervise, mentor, ownership as soft skills, whenever the job description uses them. When both a short form and a longer phrase occur, list both.",
+    "- Include skills the job description mentions only once.",
+    "- Exclude the company name, the job title, locations, benefits, and legal, EEO or privacy text.",
+    "- At most 60 hard skills and 20 soft skills, most important first.",
+    "",
+    "=== JOB DESCRIPTION ===",
+    jobDescription,
+  ].join("\n");
+}
+
+/**
+ * Parse the model's skill list. Anything that does not literally occur in the
+ * job description is dropped, so a hallucinated skill can never become a
+ * requirement.
+ */
+export function parseSkillsJson(raw: string, jobDescription: string): JdSkills {
+  const start = raw.indexOf("{");
+  const end = raw.lastIndexOf("}");
+  if (start === -1 || end <= start) throw new Error("no JSON object in skills response");
+  const parsed = JSON.parse(raw.slice(start, end + 1)) as { hard?: unknown; soft?: unknown };
+  const clean = (value: unknown, max: number): string[] => {
+    if (!Array.isArray(value)) return [];
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const item of value) {
+      if (typeof item !== "string") continue;
+      const skill = item.trim();
+      const key = skill.toLowerCase();
+      if (skill.length < 2 || skill.length > 40 || seen.has(key)) continue;
+      if (!containsTerm(jobDescription, skill)) continue;
+      seen.add(key);
+      out.push(skill);
+    }
+    return out.slice(0, max);
+  };
+  const softSeed = SEED_SOFT.filter((t) => containsTerm(jobDescription, t));
+  const softSeedKeys = new Set(softSeed.map((t) => t.toLowerCase()));
+  // A term Jobscan files under soft skills stays there even if the model
+  // called it a hard skill.
+  const hard = dedupe([
+    ...clean(parsed.hard, 60).filter((h) => !softSeedKeys.has(h.toLowerCase())),
+    ...SEED_HARD.filter((t) => containsTerm(jobDescription, t)),
+  ]);
+  const hardKeys = new Set(hard.map((h) => h.toLowerCase()));
+  // A lone word from the model is often a verb lifted from prose ("Partner");
+  // single-word soft skills are only trusted from the seed list.
+  const modelSoft = clean(parsed.soft, 20).filter(
+    (s) => s.includes(" ") || softSeedKeys.has(s.toLowerCase()),
+  );
+  const soft = dedupe([...modelSoft, ...softSeed]).filter((s) => !hardKeys.has(s.toLowerCase()));
+  return { hard, soft };
+}
+
+function dedupe(items: string[]): string[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = item.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+/**
+ * Generic terms real scanner reports have listed as skills. They are added to
+ * the model's list whenever the job description uses them, so the common ones
+ * never depend on what the model happened to return. Grow these from reports.
+ */
+const SEED_HARD = [
+  "automation", "security", "workflow", "coding", "DevOps", "networking", "documentation",
+  "testing", "monitoring", "quality assurance", "user experience", "access management",
+  "version control", "cloud infrastructure", "computer science", "financial services",
+  "incident response", "troubleshooting", "scripting", "compliance", "architecture",
+];
+const SEED_SOFT = [
+  "collaboration", "reliability", "supervise", "mentor", "mentoring", "insightful",
+  "leadership", "leadership skills", "teamwork", "encourage teamwork", "ownership",
+  "communication", "problem solving", "accountability", "adaptability",
+];
+
+/**
+ * Guarantee, in code rather than by asking the model, that every required
+ * skill is in the resume: whatever is still missing is appended to the Skills
+ * section. The model is asked to weave skills in first; this catches the rest.
+ */
+export function appendMissingSkills(markdown: string, hard: string[], soft: string[]): string {
+  const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  const additions = [
+    hard.length ? `- **Additional Technologies**: ${hard.join(", ")}` : "",
+    soft.length ? `- **Core Strengths**: ${soft.map(capitalise).join(", ")}` : "",
+  ].filter(Boolean);
+  if (!additions.length) return markdown;
+
+  const lines = markdown.split("\n");
+  const isHeading = (line: string) => /^##\s/.test(line.trim());
+  const start = lines.findIndex((l) => /^##\s*(technical\s+|core\s+)?skills\b/i.test(l.trim()));
+  if (start === -1) {
+    // No Skills section at all: add one ahead of the experience section.
+    const experience = lines.findIndex((l) =>
+      /^##\s*(professional experience|work history|experience)\b/i.test(l.trim()),
+    );
+    lines.splice(experience === -1 ? lines.length : experience, 0, "## Skills", ...additions, "");
+    return lines.join("\n");
+  }
+  let end = lines.findIndex((l, i) => i > start && isHeading(l));
+  if (end === -1) end = lines.length;
+  while (end > start + 1 && lines[end - 1]!.trim() === "") end--;
+  lines.splice(end, 0, ...additions);
+  return lines.join("\n");
+}
+
+// ponytail: in-memory cache, so the same job description grades against the
+// same skill list within a process; persist it if scores must survive restarts.
+const skillsCache = new Map<string, JdSkills>();
 
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 
@@ -139,7 +285,20 @@ function isRetryable(error: unknown): boolean {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export class GeminiOptimizer implements ResumeOptimizer {
-  async optimize(input: OptimizeInput): Promise<string> {
+  optimize(input: OptimizeInput): Promise<string> {
+    return this.run(buildPrompt(input));
+  }
+
+  async extractSkills(jobDescription: string): Promise<JdSkills> {
+    const cached = skillsCache.get(jobDescription);
+    if (cached) return cached;
+    const skills = parseSkillsJson(await this.run(buildSkillsPrompt(jobDescription)), jobDescription);
+    if (skillsCache.size >= 50) skillsCache.clear();
+    skillsCache.set(jobDescription, skills);
+    return skills;
+  }
+
+  private async run(prompt: string): Promise<string> {
     // Free-tier model availability churns constantly: a model that worked an
     // hour ago can start returning 503 or hanging outright. Walk a list rather
     // than pinning one name.
@@ -155,7 +314,7 @@ export class GeminiOptimizer implements ResumeOptimizer {
       // Move to the next model on each attempt, sticking on the last one.
       const model = models[Math.min(attempt - 1, models.length - 1)]!;
       try {
-        return await this.generate(input, model);
+        return await this.generate(prompt, model);
       } catch (error) {
         lastError = error;
         // Gemini's free tier throws transient 503 "high demand" often enough
@@ -169,7 +328,7 @@ export class GeminiOptimizer implements ResumeOptimizer {
     throw lastError;
   }
 
-  private async generate(input: OptimizeInput, modelName: string): Promise<string> {
+  private async generate(prompt: string, modelName: string): Promise<string> {
     if (!config.GEMINI_API_KEY) {
       throw new AppError(503, "OPTIMIZER_UNCONFIGURED", "Resume optimization is not configured (missing GEMINI_API_KEY)");
     }
@@ -192,7 +351,7 @@ export class GeminiOptimizer implements ResumeOptimizer {
       });
       let result;
       try {
-        result = await Promise.race([model.generateContent(buildPrompt(input)), deadline]);
+        result = await Promise.race([model.generateContent(prompt), deadline]);
       } finally {
         if (guard) clearTimeout(guard);
       }

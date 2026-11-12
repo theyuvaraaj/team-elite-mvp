@@ -81,3 +81,57 @@ it("keeps the highest-scoring pass even when a later pass scores lower", async (
   expect(optimizer.optimize).toHaveBeenCalledTimes(3);
   expect(result.atsScore).toBe(scores[1]); // highest (pass 2), NOT the last pass's score
 });
+
+it("guarantees every curated skill is in the stored resume, whatever the model wrote", async () => {
+  const jobDesc = "DevOps Engineer. Work with Kubernetes and GCP, write documentation, encourage teamwork.";
+  // The model ignores GCP, documentation and the soft skill entirely.
+  const draft = [
+    "Jane Doe",
+    "jane@example.com | +1 555 0100 | Austin, TX | linkedin.com/in/jane",
+    "DevOps Engineer",
+    "## Summary",
+    "DevOps Engineer running Kubernetes.",
+    "## Skills",
+    "- **Platform**: Kubernetes",
+    "## Professional Experience",
+    "Acme | DevOps Engineer | Jan 2021 - Present",
+    "- Cut deploy time 45% for 40000 users.",
+    "## Education",
+    "BS Computer Science, 2018",
+  ].join("\n");
+  const optimizer: ResumeOptimizer = {
+    optimize: vi.fn(async () => draft),
+    extractSkills: vi.fn(async () => ({
+      hard: ["Kubernetes", "GCP", "documentation"],
+      soft: ["encourage teamwork"],
+    })),
+  };
+  vi.mocked(repo.createOptimizedResume).mockClear();
+
+  const result = await optimizeResume({
+    candidateId: "c1", createdById: "u1", file: baseFile,
+    jobDescription: jobDesc, companyName: "Acme", optimizer,
+  });
+
+  const stored = vi.mocked(repo.createOptimizedResume).mock.calls[0]![0] as {
+    contentMarkdown: string;
+  };
+  expect(stored.contentMarkdown).toContain("- **Additional Technologies**: GCP, documentation");
+  expect(stored.contentMarkdown).toContain("- **Core Strengths**: Encourage teamwork");
+  expect(result.scoreBreakdown.keywords.missing).toEqual([]);
+  expect(result.scoreBreakdown.softSkills.missing).toEqual([]);
+});
+
+it("falls back to the heuristics when skill extraction fails", async () => {
+  const optimizer: ResumeOptimizer = {
+    optimize: vi.fn(async () => "Jane\nSummary\nx\nExperience\n- y\nEducation\nz"),
+    extractSkills: vi.fn(async () => {
+      throw new Error("upstream down");
+    }),
+  };
+  const result = await optimizeResume({
+    candidateId: "c1", createdById: "u1", file: baseFile,
+    jobDescription: jd, companyName: "Acme", optimizer,
+  });
+  expect(result.atsScore).toBeLessThan(90); // still scored, request not failed
+});

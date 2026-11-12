@@ -2,7 +2,9 @@ import { config } from "../../config.js";
 import { audit } from "../../lib/audit.js";
 import { AppError } from "../../lib/errors.js";
 import {
+  appendMissingSkills,
   getOptimizer,
+  type JdSkills,
   type OptimizeEnhancements,
   type ResumeOptimizer,
 } from "./optimizer.js";
@@ -27,6 +29,23 @@ export async function optimizeResume(params: OptimizeParams) {
   const optimizer = params.optimizer ?? getOptimizer();
   const inferredJobTitle = extractJobTitle(params.jobDescription);
 
+  // One curated skill list per request: the generator is told to cover it and
+  // the scorer grades against it. If extraction fails we fall back to the
+  // frequency heuristics rather than failing the request.
+  let skills: JdSkills | undefined;
+  try {
+    const extracted = await optimizer.extractSkills?.(params.jobDescription);
+    if (extracted?.hard.length) skills = extracted;
+  } catch (error) {
+    console.error("[optimizer] skill extraction failed, using heuristics:", String(error).slice(0, 200));
+  }
+  const score = (markdown: string) =>
+    scoreResume(markdownToPlainText(markdown), params.jobDescription, {
+      jobTitle: params.jobTitle,
+      companyName: params.companyName,
+      skills,
+    });
+
   let best: { markdown: string; score: number; breakdown: ScoreBreakdown } | null = null;
   let missingKeywords: string[] | undefined;
   let gaps: string[] | undefined;
@@ -39,15 +58,13 @@ export async function optimizeResume(params: OptimizeParams) {
       jobTitle: params.jobTitle,
       inferredJobTitle,
       enhancements: params.enhancements,
+      requiredSkills: skills,
       missingKeywords,
       gaps,
     });
     // Score the text an ATS would extract from the rendered file, not the
     // markdown source (whose ** markers become real bold when rendered).
-    const scored = scoreResume(markdownToPlainText(markdown), params.jobDescription, {
-      jobTitle: params.jobTitle,
-      companyName: params.companyName,
-    });
+    const scored = score(markdown);
     if (!best || scored.score > best.score) {
       best = { markdown, score: scored.score, breakdown: scored.breakdown };
     }
@@ -58,6 +75,23 @@ export async function optimizeResume(params: OptimizeParams) {
   }
 
   if (!best) throw new AppError(502, "OPTIMIZER_FAILED", "Resume optimization produced no result");
+
+  // Whatever the model still left out of the curated list is added to the
+  // Skills section in code, so coverage does not depend on model compliance.
+  // Only done for a curated list: the heuristic list can contain prose.
+  if (skills) {
+    const patched = appendMissingSkills(
+      best.markdown,
+      best.breakdown.keywords.missing,
+      best.breakdown.softSkills.missing,
+    );
+    if (patched !== best.markdown) {
+      const rescored = score(patched);
+      if (rescored.score >= best.score) {
+        best = { markdown: patched, score: rescored.score, breakdown: rescored.breakdown };
+      }
+    }
+  }
 
   const stored = await repository.createOptimizedResume({
     candidateId: params.candidateId,

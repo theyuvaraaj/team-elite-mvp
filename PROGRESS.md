@@ -133,8 +133,19 @@ Pipeline (`apps/api/src/modules/resumes/`):
    loop demands junk like "gender" and the optimizer writes it into the resume.
    Scoring runs on the *rendered* text (`markdownToPlainText`), not the markdown
    source. Target 95; the loop feeds named `gaps` back into the next pass.
-4. `service.ts` — parse → optimize→score refine loop (keep highest, break at
-   target, ≤ passes) → persist markdown in Postgres → audit log.
+4. `service.ts` — parse → extract the JD's skill list → optimize→score refine
+   loop (keep highest, break at target, ≤ passes) → append any skill still
+   missing → persist markdown in Postgres → audit log.
+
+   **Curated skill list** (`optimizer.extractSkills`, one extra model call per
+   request, cached in memory per JD): the model lists the hard and soft skills
+   a scanner would match, in the JD's own wording; anything not literally in
+   the JD is dropped, and generic scanner terms from `SEED_HARD` / `SEED_SOFT`
+   (taken from real Jobscan reports; grow them from new reports) are added when
+   the JD uses them. The generator is told to cover the list, the scorer grades
+   against it instead of the frequency heuristics, and `appendMissingSkills`
+   adds whatever the model left out to the Skills section in code. If
+   extraction fails the request falls back to the heuristics.
 5. `render.ts` — canonical markdown → DOCX (`docx`) and pdfkit PDF. Inline
    parser converts `**bold**`, strips stray `*`/backticks/links.
 6. `latex.ts` — markdown → single-column ATS LaTeX → **Tectonic** compile →
@@ -179,7 +190,7 @@ routes accept a UUID or a code.
 ## Testing
 
 ```bash
-pnpm --filter @team-elite/api test    # 67 tests (Vitest, needs postgres up)
+pnpm --filter @team-elite/api test    # 85 tests (Vitest, needs postgres up)
 pnpm --filter @team-elite/web exec vitest run   # 17 tests
 pnpm --filter @team-elite/api exec tsc --noEmit
 pnpm --filter @team-elite/web exec tsc -b

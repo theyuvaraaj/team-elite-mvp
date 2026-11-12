@@ -42,6 +42,11 @@ const STOPWORDS = new Set([
   "including","ensuring","while","would","could","may","might","get","make","take",
   "like","one","two","three","first","second","end","full","time","level","based",
   "than","then","gets","get","got","built","build","made","make","given","give",
+  "which","itself","themselves","ourselves","yourself","these","those","there",
+  "here","been","being","was","were","does","did","doing","having","about","above",
+  "after","again","against","before","below","between","during","each","few",
+  "further","just","more","most","nor","only","once","out","own","same","than",
+  "too","under","until","very","whom","whose","without","upon","globally",
   "everyone","everybody","anyone","someone","potential","growth","fulfil","fulfill",
   "flexibility","stability","scalability","reliability2","availability2","success",
   "future","today","tomorrow","career","careers","journey","mission","vision",
@@ -194,6 +199,12 @@ export function containsTerm(haystack: string, term: string): boolean {
   return pattern.test(haystack);
 }
 
+/** How many times a whole term occurs, using the same boundaries as containsTerm. */
+export function countTerm(haystack: string, term: string): number {
+  const pattern = new RegExp(`(?<![a-z0-9])${escapeRegex(term)}s?(?![a-z0-9])`, "gi");
+  return (haystack.match(pattern) ?? []).length;
+}
+
 /**
  * Salient JD terms, including multi-word phrases ("payment systems", "ci/cd
  * pipelines"), ranked by how often the JD repeats them. Phrases matter because
@@ -330,6 +341,8 @@ export interface ScoreOptions {
   jobTitle?: string | null;
   /** Hiring company; its name is not a skill the resume is missing. */
   companyName?: string | null;
+  /** Curated job-description skills; when present they replace the heuristics. */
+  skills?: { hard: string[]; soft: string[] } | null;
 }
 
 /** Contiguous title match, tolerating "," / "in" / "of" between the parts. */
@@ -366,7 +379,12 @@ export function scoreResume(
   // ponytail: flat tail cap; a real skill taxonomy would separate it properly.
   const repeated = ranked.filter(([, w]) => w >= 2);
   const tail = ranked.filter(([, w]) => w < 2).slice(0, TAIL_TERMS);
-  const salientWeighted = [...repeated, ...tail];
+  // A curated skill list, when one was extracted, replaces the frequency
+  // heuristic entirely: it is what a scanner grades, one-off skills included.
+  const curatedHard = options.skills?.hard ?? [];
+  const salientWeighted: [string, number][] = curatedHard.length
+    ? curatedHard.map((skill) => [skill, Math.max(1, countTerm(jobDescription, skill))])
+    : [...repeated, ...tail];
   const totalWeight = salientWeighted.reduce((sum, [, w]) => sum + w, 0);
   const matchedWeight = salientWeighted
     .filter(([t]) => containsTerm(text, t))
@@ -454,11 +472,15 @@ export function scoreResume(
   // --- Soft skills (10) -----------------------------------------------------
   // Only the soft skills the JD actually asks for are graded.
   const jdText = normalize(stripBoilerplate(jobDescription));
-  const wantedSoft = SOFT_SKILLS.filter((forms) => forms.some((f) => jdText.includes(f)));
-  const softPresent = wantedSoft.filter((forms) => forms.some((f) => text.includes(f)));
-  const missingSoft = wantedSoft
-    .filter((forms) => !forms.some((f) => text.includes(f)))
-    .map((forms) => forms[0]!);
+  // With a curated list the exact phrase is what counts ("encourage teamwork"
+  // is not satisfied by "teamwork"); otherwise fall back to the built-in forms.
+  const wantedSoft: string[][] = options.skills
+    ? options.skills.soft.map((phrase) => [phrase])
+    : SOFT_SKILLS.filter((forms) => forms.some((f) => jdText.includes(f)));
+  const hasSoft = (forms: string[]) =>
+    options.skills ? containsTerm(text, forms[0]!) : forms.some((f) => text.includes(f));
+  const softPresent = wantedSoft.filter(hasSoft);
+  const missingSoft = wantedSoft.filter((forms) => !hasSoft(forms)).map((forms) => forms[0]!);
   const softEarned = wantedSoft.length === 0 ? 10 : Math.round((softPresent.length / wantedSoft.length) * 10);
   if (missingSoft.length) {
     gaps.push(`Demonstrate these soft skills the job asks for: ${missingSoft.join(", ")}`);
